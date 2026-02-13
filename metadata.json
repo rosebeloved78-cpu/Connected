@@ -1,0 +1,8 @@
+{
+  "name": "Lifestyle Connect",
+  "description": "A premium Zimbabwean Christian dating platform connecting souls for long-lasting relationships and marriage, featuring Diaspora Connect and specialized vetting services.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
