@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { Heart, Users, Gift as GiftIcon, MessageCircle, User as UserIcon, LogOut, Menu, X, Loader2, LayoutDashboard, Send } from 'lucide-react';
 import LandingPage from '../pages/Landing';
-import OnboardingPage from '../pages/Onboarding';
+import Onboarding from '../pages/Onboarding';
 import FeedPage from '../pages/Feed';
 import DiasporaPage from '../pages/Diaspora';
 import GiftPage from '../pages/GiftShop';
@@ -125,7 +124,7 @@ const AppContent: React.FC = () => {
         <main className="flex-1 overflow-x-hidden relative">
           <Routes>
             <Route path="/" element={userProfile ? <Navigate to="/feed" replace /> : <LandingPage />} />
-            <Route path="/onboarding" element={userProfile ? <Navigate to="/feed" replace /> : <OnboardingPage />} />
+            <Route path="/onboarding" element={userProfile ? <Navigate to="/feed" replace /> : <Onboarding />} />
             <Route path="/feed" element={userProfile ? <FeedPage user={userProfile} onUpdateUser={() => {}} /> : <Navigate to="/" replace />} />
             <Route path="/messages" element={userProfile ? <MessagesPage user={userProfile} /> : <Navigate to="/" replace />} />
             <Route path="/diaspora" element={userProfile ? <DiasporaPage user={userProfile} /> : <Navigate to="/" replace />} />

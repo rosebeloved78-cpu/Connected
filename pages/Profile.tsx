@@ -1,11 +1,12 @@
 
 import React, { useState, useRef } from 'react';
-import { User } from '../types';
-import { User as UserIcon, ShieldCheck, Heart, Baby, Church, Briefcase, MapPin, CheckCircle, Plus, Check, X, UserCheck, Camera, Image as ImageIcon, Trash2, Loader2, EyeOff, Eye, Ban, AlertTriangle } from 'lucide-react';
+import { User, Tier, SpiritualMaturity } from '../types';
+import { User as UserIcon, ShieldCheck, Heart, Baby, Church, Briefcase, MapPin, CheckCircle, Plus, Check, X, UserCheck, Camera, Image as ImageIcon, Trash2, Loader2, EyeOff, Eye, Ban, AlertTriangle, Zap, Star, Gift as GiftIcon, Video, Globe, Truck, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+import PaymentModal from '../components/PaymentModal';
 
 const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({ user, onUpdate }) => {
   const navigate = useNavigate();
@@ -14,9 +15,14 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
   const [saving, setSaving] = useState(false);
   const { refreshProfile, logout } = useAuth();
   
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [pendingUpgrade, setPendingUpgrade] = useState<{ tier: Tier, amount: number, title: string, desc: string } | null>(null);
+
   const profileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  const isLocal = !user.isDiaspora;
 
   const handleSave = async () => {
     setSaving(true);
@@ -79,7 +85,6 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
         try {
           const userRef = doc(db, 'users', user.id);
           await deleteDoc(userRef);
-          // Optional: handle auth user deletion if needed, but for now we just log out
           await logout();
           navigate('/');
         } catch (error) {
@@ -88,6 +93,28 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
         } finally {
           setSaving(false);
         }
+      }
+    }
+  };
+
+  const initiateUpgrade = (targetTier: Tier, amount: number, title: string, desc: string) => {
+    setPendingUpgrade({ tier: targetTier, amount, title, desc });
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = async () => {
+    if (pendingUpgrade) {
+      setSaving(true);
+      try {
+        const userRef = doc(db, 'users', user.id);
+        await updateDoc(userRef, { tier: pendingUpgrade.tier });
+        await refreshProfile();
+        setPaymentModalOpen(false);
+        setPendingUpgrade(null);
+      } catch (error) {
+        console.error("Error upgrading:", error);
+      } finally {
+        setSaving(false);
       }
     }
   };
@@ -231,6 +258,7 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
                       <Church className="text-rose-600" /> Spiritual Foundation
                     </h3>
                     <div className="space-y-6">
+                      <ProfileDetail label="Discernment" value={formData.spiritualMaturity} />
                       <ProfileDetail label="Church Life" value={formData.attendsChurch ? 'Attends Regularly' : 'Prays from Home'} />
                       {formData.attendsChurch && (
                         <>
@@ -257,6 +285,21 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
                 </>
               ) : (
                 <div className="space-y-12 animate-in fade-in slide-in-from-left-4 duration-300">
+                  <div className="p-10 bg-indigo-50/50 rounded-[4rem] border-2 border-indigo-100">
+                    <h4 className="text-2xl font-black text-indigo-950 mb-6 flex items-center gap-2"><Sparkles className="text-indigo-600" /> Spiritual Discernment</h4>
+                    <EditField label="Maturity Level">
+                      <select 
+                        value={formData.spiritualMaturity} 
+                        onChange={e => updateField('spiritualMaturity', e.target.value as SpiritualMaturity)} 
+                        className="edit-input"
+                      >
+                        <option value="'Nepios', a baby">'Nepios', a baby</option>
+                        <option value="'Teknon', growing">'Teknon', growing</option>
+                        <option value="'Huios', mature">'Huios', mature</option>
+                      </select>
+                    </EditField>
+                  </div>
+
                   <div className="space-y-8 p-10 bg-blue-50/50 rounded-[4rem] border-2 border-blue-100">
                     <h4 className="text-2xl font-black text-blue-950 mb-4 flex items-center gap-2"><Baby /> Family History</h4>
                     <div className="space-y-6">
@@ -394,6 +437,124 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
             </div>
           </div>
 
+          {/* Membership & Tiers Section */}
+          <div className="mt-20 pt-16 border-t border-gray-100">
+            <h3 className="text-2xl font-black text-rose-950 mb-8 flex items-center gap-3">
+              <Zap className="text-amber-500" fill="currentColor" /> Membership Tiers
+            </h3>
+            
+            {/* --- LOCAL ZIMBABWE TIERS --- */}
+            {isLocal ? (
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Local Tier 2 */}
+                <div className={`p-10 rounded-[3.5rem] border-4 transition-all ${user.tier === 'tier2' ? 'bg-rose-50 border-rose-200' : 'bg-white border-gray-100 shadow-xl'}`}>
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h4 className="text-2xl font-black text-rose-950">Premium</h4>
+                      <p className="text-xs font-black text-rose-400 uppercase tracking-widest">$10 / MONTH</p>
+                    </div>
+                    {user.tier === 'tier2' && <CheckCircle className="text-green-500" size={32} fill="currentColor" />}
+                  </div>
+                  <ul className="space-y-4 mb-10">
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><Globe size={16} className="text-rose-600" /> Diaspora Connections</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><Video size={16} className="text-rose-600" /> Video Calling</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><MapPin size={16} className="text-rose-600" /> Filter by Church & City</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><GiftIcon size={16} className="text-rose-600" /> Gift Buying Access</li>
+                  </ul>
+                  {user.tier === 'free' && (
+                    <button 
+                      onClick={() => initiateUpgrade('tier2', 10, 'Upgrade to Premium', 'Unlock Diaspora connections, video calls, and advanced filters.')}
+                      className="w-full py-5 bg-rose-600 text-white rounded-[2rem] font-black shadow-lg hover:scale-105 transition-all"
+                    >
+                      Upgrade to Premium
+                    </button>
+                  )}
+                  {user.tier === 'tier2' && <p className="text-center font-black text-rose-600 text-xs uppercase tracking-widest">Active Membership</p>}
+                </div>
+
+                {/* Local Tier 3 */}
+                <div className={`p-10 rounded-[3.5rem] border-4 transition-all ${user.tier === 'tier3' ? 'bg-rose-50 border-rose-200' : 'bg-white border-gray-100 shadow-xl'}`}>
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h4 className="text-2xl font-black text-rose-950">Elite</h4>
+                      <p className="text-xs font-black text-rose-400 uppercase tracking-widest">$20 / MONTH</p>
+                    </div>
+                    {user.tier === 'tier3' && <CheckCircle className="text-green-500" size={32} fill="currentColor" />}
+                  </div>
+                  <ul className="space-y-4 mb-10">
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><Star size={16} className="text-amber-500" fill="currentColor" /> All Premium Features</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><Truck size={16} className="text-amber-500" /> Special Gift Delivery Service</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><ShieldCheck size={16} className="text-amber-500" /> Never Married & No Kids Filters</li>
+                  </ul>
+                  {user.tier !== 'tier3' && (
+                    <button 
+                      onClick={() => initiateUpgrade('tier3', 20, 'Upgrade to Elite', 'Unlock special delivery services and exclusive life-history filters.')}
+                      className="w-full py-5 bg-amber-500 text-white rounded-[2rem] font-black shadow-lg hover:scale-105 transition-all"
+                    >
+                      Upgrade to Elite
+                    </button>
+                  )}
+                  {user.tier === 'tier3' && <p className="text-center font-black text-amber-600 text-xs uppercase tracking-widest">Active Membership</p>}
+                </div>
+              </div>
+            ) : (
+              /* --- DIASPORA CONNECT TIERS --- */
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Diaspora Tier 2 */}
+                <div className={`p-10 rounded-[3.5rem] border-4 transition-all ${user.tier === 'diaspora_premium' ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100 shadow-xl'}`}>
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h4 className="text-2xl font-black text-blue-950">Diaspora Premium</h4>
+                      <p className="text-xs font-black text-blue-400 uppercase tracking-widest">$20 / MONTH</p>
+                    </div>
+                    {user.tier === 'diaspora_premium' && <CheckCircle className="text-blue-500" size={32} fill="currentColor" />}
+                  </div>
+                  <ul className="space-y-4 mb-10">
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><Globe size={16} className="text-blue-600" /> Zimbabwe & Global Access</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><Video size={16} className="text-blue-600" /> Video Calling</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><MapPin size={16} className="text-blue-600" /> Filter by Church & City</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><GiftIcon size={16} className="text-blue-600" /> Gift Buying (Send to Zim)</li>
+                  </ul>
+                  {user.tier === 'diaspora_free' && (
+                    <button 
+                      onClick={() => initiateUpgrade('diaspora_premium', 20, 'Upgrade to Diaspora Premium', 'Unlock connections back home, video calls, and advanced filters.')}
+                      className="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black shadow-lg hover:scale-105 transition-all"
+                    >
+                      Upgrade to Premium
+                    </button>
+                  )}
+                  {user.tier === 'diaspora_premium' && <p className="text-center font-black text-blue-600 text-xs uppercase tracking-widest">Active Membership</p>}
+                </div>
+
+                {/* Diaspora Tier 3 */}
+                <div className={`p-10 rounded-[3.5rem] border-4 transition-all ${user.tier === 'diaspora_vetted' ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-gray-100 shadow-xl'}`}>
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h4 className="text-2xl font-black text-indigo-950">Elite Vetted</h4>
+                      <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">$50 / MONTH</p>
+                    </div>
+                    {user.tier === 'diaspora_vetted' && <CheckCircle className="text-indigo-500" size={32} fill="currentColor" />}
+                  </div>
+                  <ul className="space-y-4 mb-10">
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><ShieldCheck size={16} className="text-amber-500" /> Concierge Physical Vetting</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><Star size={16} className="text-amber-500" fill="currentColor" /> All Premium Features</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><Truck size={16} className="text-amber-500" /> Special Gift Delivery Service</li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-gray-600"><Baby size={16} className="text-amber-500" /> Elite Life History Filters</li>
+                  </ul>
+                  {user.tier !== 'diaspora_vetted' && (
+                    <button 
+                      onClick={() => initiateUpgrade('diaspora_vetted', 50, 'Upgrade to Elite Vetted', 'Unlock concierge face-to-face vetting and special delivery services.')}
+                      className="w-full py-5 bg-indigo-900 text-white rounded-[2rem] font-black shadow-lg hover:scale-105 transition-all"
+                    >
+                      Upgrade to Elite Vetted
+                    </button>
+                  )}
+                  {user.tier === 'diaspora_vetted' && <p className="text-center font-black text-indigo-600 text-xs uppercase tracking-widest">Active Membership</p>}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Account Settings Section */}
           <div className="mt-20 pt-16 border-t border-gray-100">
             <h3 className="text-2xl font-black text-rose-950 mb-8 flex items-center gap-3">
@@ -448,6 +609,15 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
         </div>
       </div>
       
+      <PaymentModal 
+        isOpen={paymentModalOpen} 
+        onClose={() => setPaymentModalOpen(false)} 
+        amount={pendingUpgrade?.amount || 0} 
+        title={pendingUpgrade?.title || ''} 
+        description={pendingUpgrade?.desc || ''} 
+        onSuccess={handlePaymentSuccess} 
+      />
+
       <style>{`
         .edit-input {
           width: 100%;

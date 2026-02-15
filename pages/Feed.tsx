@@ -6,6 +6,7 @@ import { collection, getDocs, query, limit, addDoc, serverTimestamp, where } fro
 import { db } from '../firebase';
 import PaymentModal from '../components/PaymentModal';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleGenAI } from "@google/genai";
 
 interface FeedPageProps {
   user: User;
@@ -17,7 +18,7 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
   const [dbUsers, setDbUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [aiInsight, setAiInsight] = useState<{ id: string, text: string } | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [loadingAiId, setLoadingAiId] = useState<string | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [pendingUpgrade, setPendingUpgrade] = useState<{ tier: Tier, amount: number, title: string, desc: string } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -33,8 +34,7 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
   const localTier3 = user.tier === 'tier3';
   const diasporaTier2OrHigher = user.tier === 'diaspora_premium' || user.tier === 'diaspora_vetted';
 
-  // Access Controls
-  const canLocalSeeWholeZim = isLocal; // NOW FREE for all Zim users
+  const canLocalSeeWholeZim = isLocal;
   const canDiasporaSeeWholeCountry = user.isDiaspora; 
   const canDiasporaSeeGlobal = user.isDiaspora && diasporaTier2OrHigher;
   
@@ -65,6 +65,44 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
     fetchUsers();
   }, [user.id]);
 
+  const generateSpiritualDiscernment = async (match: User) => {
+    setLoadingAiId(match.id);
+    setAiInsight(null);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      const prompt = `You are a spiritual advisor for 'Lifestyle Connect', a Zimbabwean Christian dating app. 
+      Analyze the spiritual compatibility between these two believers based on their spiritual walk and church life:
+      
+      PERSON 1 (ME):
+      Name: ${user.name}
+      Maturity Level: ${user.spiritualMaturity || "'Teknon', growing"}
+      Church: ${user.churchName || 'Not specified'}
+      Serving: ${user.servesInChurch ? `Serves in ${user.department}` : 'Dedicated Member'}
+      Bio Snippet: ${user.bio.substring(0, 100)}
+
+      PERSON 2 (MATCH):
+      Name: ${match.name}
+      Maturity Level: ${match.spiritualMaturity || "'Teknon', growing"}
+      Church: ${match.churchName || 'Not specified'}
+      Serving: ${match.servesInChurch ? `Serves in ${match.department}` : 'Dedicated Member'}
+      Bio Snippet: ${match.bio.substring(0, 100)}
+
+      Provide a brief (max 50 words) "Spiritual Discernment" highlighting their shared dedication to Christ. Mention how their biblical maturity (Nepios/Teknon/Huios) and ministry roles might complement each other. Use a warm, faith-based tone.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: [{ parts: [{ text: prompt }] }],
+      });
+
+      setAiInsight({ id: match.id, text: response.text || "A beautiful spiritual alignment is possible here." });
+    } catch (error) {
+      console.error("AI Error:", error);
+      setAiInsight({ id: match.id, text: "Your shared faith provides a solid foundation for a God-honoring connection." });
+    } finally {
+      setLoadingAiId(null);
+    }
+  };
+
   const filteredMatches = useMemo(() => {
     return dbUsers.filter(m => {
       if (m.gender === user.gender) return false;
@@ -77,7 +115,6 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
         } else {
           if (m.isDiaspora) return false;
           if (locationView === 'city' && m.city !== user.city) return false;
-          // canLocalSeeWholeZim is now true for all locals
           if (locationView === 'country' && !canLocalSeeWholeZim) return false;
         }
       } else {
@@ -266,10 +303,28 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
                      <span className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase tracking-widest">{match.churchName || 'Faithful Christian'}</span>
                   </div>
                   <p className="text-gray-600 font-bold text-base mb-8 line-clamp-3 italic leading-relaxed">"{match.bio}"</p>
+                  
+                  {/* AI Insight Display */}
+                  {aiInsight?.id === match.id && (
+                    <div className="mb-8 p-6 bg-indigo-50/50 rounded-[2rem] border-2 border-indigo-100 animate-in fade-in zoom-in duration-500">
+                      <div className="flex items-center gap-2 mb-3 text-indigo-600">
+                        <Sparkles size={16} fill="currentColor" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Spiritual Discernment</span>
+                      </div>
+                      <p className="text-indigo-900 font-bold text-sm italic leading-relaxed">"{aiInsight.text}"</p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-4 gap-4">
                     <button className="h-16 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors"><X size={28} /></button>
                     <button onClick={() => handleConnect(match)} className="col-span-2 h-16 rounded-2xl bg-rose-600 text-white flex items-center justify-center gap-3 shadow-xl shadow-rose-100 font-black uppercase text-xs tracking-widest hover:bg-rose-700 active:scale-95 transition-all"> <Heart size={24} fill="currentColor" /> Connect </button>
-                    <button onClick={async () => { setIsAiLoading(true); await new Promise(r => setTimeout(r, 1200)); setAiInsight({ id: match.id, text: `Spiritual insight: Your shared dedication to God-honoring relationships creates a strong foundation for a purposeful union.` }); setIsAiLoading(false); }} className="h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors"> {isAiLoading ? <Loader2 className="animate-spin" /> : <Sparkles size={28} />} </button>
+                    <button 
+                      onClick={() => generateSpiritualDiscernment(match)} 
+                      disabled={loadingAiId === match.id}
+                      className="h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                    > 
+                      {loadingAiId === match.id ? <Loader2 className="animate-spin" /> : <Sparkles size={28} />} 
+                    </button>
                   </div>
                 </div>
               </div>

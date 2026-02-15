@@ -1,7 +1,7 @@
 
 export type Tier = 'free' | 'tier2' | 'tier3' | 'diaspora_free' | 'diaspora_premium' | 'diaspora_vetted';
 
-export type SpiritualMaturity = 'New Believer' | 'Growing' | 'Deeply Rooted' | 'Church Leader';
+export type SpiritualMaturity = "'Nepios', a baby" | "'Teknon', growing" | "'Huios', mature";
 
 export interface User {
   id: string;

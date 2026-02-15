@@ -125,23 +125,19 @@ const LandingPage: React.FC = () => {
   };
 
   const collageImages = [
-    // White Wedding Vibe
-    "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=600&q=80", // Joyful Black couple wedding
-    "https://images.unsplash.com/photo-1608630712773-455562762a4b?auto=format&fit=crop&w=600&q=80", // Formal couple
-    "https://images.unsplash.com/photo-1551509653-6b7f3844b266?auto=format&fit=crop&w=600&q=80", // Wedding embrace
-    "https://images.unsplash.com/photo-1522673607200-1648832cee33?auto=format&fit=crop&w=600&q=80", // Black couple outdoors
-    
-    // Traditional / Lobola / Culture Vibe
-    "https://images.unsplash.com/photo-1546961329-78bef0414d7c?auto=format&fit=crop&w=600&q=80", // African cultural attire
-    "https://images.unsplash.com/photo-1534008775685-2c938d613149?auto=format&fit=crop&w=600&q=80", // Woman in headwrap
-    "https://images.unsplash.com/photo-1531123897727-8f129e16fd3c?auto=format&fit=crop&w=600&q=80", // Traditional fashion
-    "https://images.unsplash.com/photo-1567215132561-26792694b423?auto=format&fit=crop&w=600&q=80", // Couple laughing
-    
-    // Celebration & Love
-    "https://images.unsplash.com/photo-1628891566324-42f2b7d41071?auto=format&fit=crop&w=600&q=80", // Black bride portrait
-    "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80", // Reception setting
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80", // Joyful woman
-    "https://images.unsplash.com/photo-1606105953063-448f7000d664?auto=format&fit=crop&w=600&q=80", // Wedding couple sunset
+    // Curated high-quality images of African-American / African couples
+    "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1523292562811-8fa7962a78c8?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1608630712773-455562762a4b?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1522673607200-1648832cee33?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1546961329-78bef0414d7c?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1516589174184-c68526572af0?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1583939411023-1478317ad1a8?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1534008775685-2c938d613149?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1628891566324-42f2b7d41071?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1606105953063-448f7000d664?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1551509653-6b7f3844b266?auto=format&fit=crop&w=600&q=80", 
+    "https://images.unsplash.com/photo-1567215132561-26792694b423?auto=format&fit=crop&w=600&q=80",
   ];
 
   return (

@@ -1,5 +1,4 @@
-
-const CACHE_NAME = 'lifestyle-connect-v2';
+const CACHE_NAME = 'lifestyle-connect-v4';
 const urlsToCache = [
   './',
   './index.html',

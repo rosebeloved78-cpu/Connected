@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, sendEmailVerification, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import { User, Tier } from '../types';
+import { User, Tier, SpiritualMaturity } from '../types';
 import { Logo, ZIM_CITIES } from '../constants';
-import { ArrowRight, Check, Church, Heart, ShieldCheck, Briefcase, MapPin, Globe, Star, Zap, Lock, Loader2, Mail, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowRight, Check, Church, Heart, ShieldCheck, Briefcase, MapPin, Globe, Star, Zap, Lock, Loader2, Mail, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +28,7 @@ const OnboardingPage: React.FC = () => {
     hasChildren: false,
     numberOfChildren: 0,
     wantsChildren: 'Yes' as 'Yes' | 'No' | 'Maybe',
+    spiritualMaturity: "'Teknon', growing" as SpiritualMaturity,
     attendsChurch: null as boolean | null,
     churchName: '',
     servesInChurch: null as boolean | null,
@@ -49,12 +50,12 @@ const OnboardingPage: React.FC = () => {
     }
   }, []);
 
-  const TOTAL_STEPS = 10; 
+  const TOTAL_STEPS = 11; 
   const isDiasporaUser = formData.locationType === 'Diaspora';
 
   const handleNext = () => {
-    if (step === 4 && formData.attendsChurch === false) { setStep(8); return; }
-    if (step === 6 && formData.servesInChurch === false) { setStep(8); return; }
+    if (step === 5 && formData.attendsChurch === false) { setStep(9); return; }
+    if (step === 7 && formData.servesInChurch === false) { setStep(9); return; }
     if (step < TOTAL_STEPS) setStep(step + 1);
   };
 
@@ -84,6 +85,7 @@ const OnboardingPage: React.FC = () => {
         churchName: formData.attendsChurch ? formData.churchName : undefined,
         servesInChurch: !!formData.servesInChurch,
         department: formData.servesInChurch ? formData.department : undefined,
+        spiritualMaturity: formData.spiritualMaturity,
         vowAccepted: formData.vowAccepted,
         tier: formData.tier,
         isDiaspora: formData.locationType === 'Diaspora',
@@ -140,12 +142,12 @@ const OnboardingPage: React.FC = () => {
       return false;
     }
     if (step === 3 && (!formData.profession || !formData.education)) return true;
-    if (step === 4 && formData.attendsChurch === null) return true;
-    if (step === 5 && !formData.churchName) return true;
-    if (step === 6 && formData.servesInChurch === null) return true;
-    if (step === 7 && !formData.department) return true;
-    if (step === 8 && !formData.vowAccepted) return true;
-    if (step === 10) {
+    if (step === 5 && formData.attendsChurch === null) return true;
+    if (step === 6 && !formData.churchName) return true;
+    if (step === 7 && formData.servesInChurch === null) return true;
+    if (step === 8 && !formData.department) return true;
+    if (step === 9 && !formData.vowAccepted) return true;
+    if (step === 11) {
       if (googleUser) return false;
       return !formData.email || formData.password.length < 6;
     }
@@ -162,10 +164,11 @@ const OnboardingPage: React.FC = () => {
             {step === 1 && "Identity & Location"}
             {step === 2 && "Personal History"}
             {step === 3 && "Vocation & Education"}
-            {(step >= 4 && step <= 7) && "Church Life"}
-            {step === 8 && "Covenant Vow"}
-            {step === 9 && "Select Your Tier"}
-            {step === 10 && "Secure Profile"}
+            {step === 4 && "Spiritual Discernment"}
+            {(step >= 5 && step <= 8) && "Church Life"}
+            {step === 9 && "Covenant Vow"}
+            {step === 10 && "Select Your Tier"}
+            {step === 11 && "Secure Profile"}
           </h2>
           <div className="flex gap-2 mt-6">
             {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
@@ -262,6 +265,35 @@ const OnboardingPage: React.FC = () => {
           )}
 
           {step === 4 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-10 duration-500">
+              <div className="text-center">
+                <h3 className="text-2xl font-black text-rose-950 leading-tight mb-4">How spiritually mature are you?</h3>
+                <p className="text-gray-500 font-bold text-sm">Choose the level that best describes your current walk with Christ.</p>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { value: "'Nepios', a baby", desc: "A fresh believer starting their journey in the Word." },
+                  { value: "'Teknon', growing", desc: "Actively studying and applying Kingdom principles." },
+                  { value: "'Huios', mature", desc: "Deeply rooted, bearing fruit, and leading in faith." }
+                ].map((opt) => (
+                  <button 
+                    key={opt.value} 
+                    type="button" 
+                    onClick={() => updateForm('spiritualMaturity', opt.value as SpiritualMaturity)} 
+                    className={`w-full p-6 rounded-[2rem] border-4 text-left transition-all group ${formData.spiritualMaturity === opt.value ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-100' : 'bg-white border-gray-100 text-gray-900 hover:border-indigo-100'}`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-black text-lg">{opt.value}</span>
+                      {formData.spiritualMaturity === opt.value && <Sparkles size={18} fill="currentColor" />}
+                    </div>
+                    <p className={`text-xs font-bold leading-relaxed ${formData.spiritualMaturity === opt.value ? 'text-indigo-100' : 'text-gray-400'}`}>{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === 5 && (
             <div className="space-y-10 animate-in fade-in slide-in-from-right-10 duration-500">
               <div className="text-center">
                 <h3 className="text-2xl font-black text-rose-950 leading-tight">Do you attend a local church regularly?</h3>
@@ -274,7 +306,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-10 duration-500">
                <div className="space-y-2">
                 <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Congregation / Church Name</label>
@@ -283,7 +315,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           )}
 
-          {step === 6 && (
+          {step === 7 && (
             <div className="space-y-10 animate-in fade-in slide-in-from-right-10 duration-500">
               <div className="text-center">
                 <h3 className="text-2xl font-black text-rose-950 leading-tight">Do you serve in a department?</h3>
@@ -296,7 +328,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           )}
 
-          {step === 7 && (
+          {step === 8 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-10 duration-500">
                <div className="space-y-2">
                 <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Department Name</label>
@@ -305,7 +337,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           )}
 
-          {step === 8 && (
+          {step === 9 && (
              <div className="bg-rose-900 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
                 <h3 className="text-3xl font-black mb-6 flex items-center gap-3"><Heart fill="white" /> Covenant Vow</h3>
                 <p className="text-lg leading-relaxed font-bold opacity-90 mb-10">"I promise to interact with integrity, honor, and Godly respect."</p>
@@ -313,7 +345,7 @@ const OnboardingPage: React.FC = () => {
               </div>
           )}
 
-          {step === 9 && (
+          {step === 10 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-10 duration-500">
                <h3 className="text-2xl font-black text-rose-950 text-center mb-6">Select Tier</h3>
                <div className="grid gap-4">
@@ -342,13 +374,13 @@ const OnboardingPage: React.FC = () => {
             </div>
           )}
 
-          {step === 10 && (
+          {step === 11 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-10 duration-500">
               {googleUser ? (
                 <div className="bg-green-50 p-8 rounded-3xl border-2 border-green-200 text-center">
                     <CheckCircle className="mx-auto text-green-600 mb-4" size={48} />
                     <p className="font-black text-green-900 mb-2">Authenticated as {googleUser.displayName}</p>
-                    <p className="text-xs font-bold text-green-700">{googleUser.email}</p>
+                    <p className="text-sm font-bold text-green-700">{googleUser.email}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
