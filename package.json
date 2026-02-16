@@ -2,11 +2,6 @@
   "name": "lifestyle-connect",
   "private": true,
   "version": "0.0.0",
-  "overrides": {
-    "name-of-library-causing-warning": {
-      "react": "19.2.4"
-    }
-  },
   "type": "module",
   "scripts": {
     "dev": "vite",
