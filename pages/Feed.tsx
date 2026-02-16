@@ -69,6 +69,7 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
     setLoadingAiId(match.id);
     setAiInsight(null);
     try {
+      // Create a fresh instance of GoogleGenAI for each request to ensure the latest API key is used
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
       const prompt = `You are a spiritual advisor for 'Lifestyle Connect', a Zimbabwean Christian dating app. 
       Analyze the spiritual compatibility between these two believers based on their spiritual walk and church life:
@@ -89,11 +90,13 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
 
       Provide a brief (max 50 words) "Spiritual Discernment" highlighting their shared dedication to Christ. Mention how their biblical maturity (Nepios/Teknon/Huios) and ministry roles might complement each other. Use a warm, faith-based tone.`;
 
+      // Upgraded to gemini-3-pro-preview for better reasoning on complex tasks like spiritual compatibility
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3-pro-preview',
         contents: [{ parts: [{ text: prompt }] }],
       });
 
+      // Directly accessing .text property of GenerateContentResponse
       setAiInsight({ id: match.id, text: response.text || "A beautiful spiritual alignment is possible here." });
     } catch (error) {
       console.error("AI Error:", error);

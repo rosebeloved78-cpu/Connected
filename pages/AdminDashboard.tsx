@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Vendor, Gift } from '../types';
-import { collection, addDoc, getDocs, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { VENDOR_CATEGORIES } from '../constants';
 import { ShieldCheck, CreditCard, Users, Mic, Plus, Trash2, Save, Store, Smartphone, DollarSign, LayoutDashboard, Loader2, Upload, MapPin, Phone, Mail, Image as ImageIcon, Video, Youtube, Gift as GiftIcon } from 'lucide-react';
@@ -45,6 +45,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   // Audio
   const [adminPostContent, setAdminPostContent] = useState('');
   const [adminAudio, setAdminAudio] = useState<string | null>(null);
+  // Fix: Move the declaration of audioInputRef to the top and make it a constant to avoid reassignment errors
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   // Video
@@ -54,14 +55,20 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   useEffect(() => {
     fetchVendors();
     fetchGifts();
-    // Simulate fetching payment settings from a secured collection
-    setPaymentSettings({
-      ecocashCode: '*151*1*1*077123456#',
-      ecocashName: 'Lifestyle Connect Pvt Ltd',
-      stripeKey: 'pk_live_...',
-      paypalClientId: 'client_id_...'
-    });
+    fetchPaymentSettings();
   }, []);
+
+  const fetchPaymentSettings = async () => {
+    try {
+      const docRef = doc(db, 'settings', 'payments');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setPaymentSettings(docSnap.data() as any);
+      }
+    } catch (e) {
+      console.error("Error fetching payment settings:", e);
+    }
+  };
 
   const fetchVendors = async () => {
     try {
@@ -83,10 +90,16 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
 
   const handleSavePayments = async () => {
     setLoading(true);
-    // In a real app, save to a 'settings' collection
-    await new Promise(r => setTimeout(r, 1000)); 
-    setLoading(false);
-    alert('Payment gateways updated successfully.');
+    try {
+      const docRef = doc(db, 'settings', 'payments');
+      await setDoc(docRef, paymentSettings);
+      alert('Payment gateways updated successfully.');
+    } catch (e) {
+      console.error("Error saving payment settings:", e);
+      alert('Failed to save payment settings.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVendorImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
