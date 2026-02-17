@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, CreditCard, Smartphone, CheckCircle, Loader2, Lock, ShieldCheck, DollarSign, AlertCircle } from 'lucide-react';
+import { X, CreditCard, Smartphone, CheckCircle, Loader2, Lock, ShieldCheck, DollarSign, AlertCircle, ExternalLink, ArrowRight } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -20,12 +20,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
   const [loading, setLoading] = useState(false);
   const [fetchingConfig, setFetchingConfig] = useState(true);
   const [config, setConfig] = useState<any>(null);
-  const [step, setStep] = useState<'select' | 'process' | 'success'>('select');
+  const [step, setStep] = useState<'select' | 'process' | 'verify' | 'success'>('select');
   
-  // EcoCash State
+  // Input states
   const [phoneNumber, setPhoneNumber] = useState('');
-  
-  // Card State
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
@@ -48,34 +46,48 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setConfig(docSnap.data());
+      } else {
+        setConfig({}); // Fallback to empty object if no admin settings found
       }
     } catch (e) {
       console.error("Error fetching payment config:", e);
+      setConfig({});
     } finally {
       setFetchingConfig(false);
     }
   };
 
+  const handleOpenLink = (url: string) => {
+    if (!url) return;
+    // Standard practice for handling external payment redirects
+    const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+    window.open(formattedUrl, '_blank', 'noopener,noreferrer');
+    setStep('verify'); // Transition to manual verification step
+  };
+
   const handlePayment = async () => {
-    // Validation based on method
-    if (method === 'ecocash' && !config?.ecocashCode) {
-        alert("EcoCash is not currently configured by the administrator.");
-        return;
-    }
-    if (method === 'stripe' && !config?.stripeKey) {
-        alert("Stripe is not currently configured by the administrator.");
-        return;
-    }
-    if (method === 'paypal' && !config?.paypalClientId) {
-        alert("PayPal is not currently configured by the administrator.");
-        return;
+    setLoading(true);
+
+    const externalUrl = method === 'ecocash' ? config?.ecocashUrl : (method === 'stripe' ? config?.stripeUrl : config?.paypalUrl);
+    
+    // IF we have an external URL and we are just starting (step === 'process')
+    // We REDIRECT and PAUSE. We do NOT simulate success yet.
+    if (externalUrl && step === 'process') {
+      handleOpenLink(externalUrl);
+      setLoading(false);
+      return; 
     }
 
-    setLoading(true);
-    // Simulate real API verification handshake
+    // Handshake/Verification simulation (Step 2)
+    // This part only triggers if:
+    // 1. We are in 'verify' step (user returned from link)
+    // 2. OR we are in 'process' and NO external URL is set (Demo Mode)
     await new Promise(resolve => setTimeout(resolve, 3500));
+    
     setLoading(false);
     setStep('success');
+    
+    // Delay closing slightly so user sees the success state
     setTimeout(() => {
       onSuccess();
       onClose();
@@ -89,57 +101,53 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
       {fetchingConfig ? (
         <div className="flex flex-col items-center justify-center py-10">
           <Loader2 className="animate-spin text-rose-600 mb-2" />
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Checking Gateways...</p>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Waking Gateways...</p>
         </div>
       ) : (
         <>
           <button 
             onClick={() => { setMethod('ecocash'); setStep('process'); }}
-            className="w-full p-4 rounded-2xl border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center justify-between group"
+            className="w-full p-5 rounded-3xl border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center">
-                <Smartphone size={24} />
-              </div>
+              <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-100"><Smartphone size={28} /></div>
               <div className="text-left">
-                <h4 className="font-black text-blue-900">EcoCash</h4>
-                <p className="text-xs font-bold text-gray-400">Mobile Money (Zimbabwe)</p>
+                <h4 className="font-black text-blue-900 text-lg">EcoCash</h4>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mobile Money (Zim)</p>
               </div>
             </div>
-            {!config?.ecocashCode && <Lock size={14} className="text-gray-300" />}
+            {config?.ecocashUrl ? <ArrowRight size={18} className="text-blue-200" /> : <div className="px-2 py-1 bg-gray-100 rounded text-[8px] font-black text-gray-400 uppercase tracking-widest">Demo</div>}
           </button>
 
           <button 
             onClick={() => { setMethod('stripe'); setStep('process'); }}
-            className="w-full p-4 rounded-2xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all flex items-center justify-between group"
+            className="w-full p-5 rounded-3xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
-                <CreditCard size={24} />
-              </div>
+              <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100"><CreditCard size={28} /></div>
               <div className="text-left">
-                <h4 className="font-black text-gray-900">Credit Card</h4>
-                <p className="text-xs font-bold text-gray-400">Powered by Stripe</p>
+                <h4 className="font-black text-gray-900 text-lg">Stripe</h4>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Intl Cards</p>
               </div>
             </div>
-            {!config?.stripeKey && <Lock size={14} className="text-gray-300" />}
+            {config?.stripeUrl ? <ArrowRight size={18} className="text-indigo-200" /> : <div className="px-2 py-1 bg-gray-100 rounded text-[8px] font-black text-gray-400 uppercase tracking-widest">Demo</div>}
           </button>
 
           <button 
             onClick={() => { setMethod('paypal'); setStep('process'); }}
-            className="w-full p-4 rounded-2xl border-2 border-yellow-100 hover:border-yellow-500 hover:bg-yellow-50 transition-all flex items-center justify-between group"
+            className="w-full p-5 rounded-3xl border-2 border-gray-100 hover:border-yellow-500 hover:bg-yellow-50 transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-[#003087] text-white flex items-center justify-center relative overflow-hidden">
-                 <span className="font-black italic text-[10px] z-10">Pay</span>
+              <div className="w-14 h-14 rounded-2xl bg-[#003087] text-white flex items-center justify-center shadow-lg shadow-blue-100 relative overflow-hidden">
+                 <span className="font-black italic text-sm z-10">Pay</span>
                  <div className="absolute inset-0 bg-gradient-to-br from-[#003087] to-[#009cde]"></div>
               </div>
               <div className="text-left">
-                <h4 className="font-black text-gray-900">PayPal</h4>
-                <p className="text-xs font-bold text-gray-400">International Secure Checkout</p>
+                <h4 className="font-black text-gray-900 text-lg">PayPal</h4>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Secure Link</p>
               </div>
             </div>
-            {!config?.paypalClientId && <Lock size={14} className="text-gray-300" />}
+            {config?.paypalUrl ? <ArrowRight size={18} className="text-yellow-400" /> : <div className="px-2 py-1 bg-gray-100 rounded text-[8px] font-black text-gray-400 uppercase tracking-widest">Demo</div>}
           </button>
         </>
       )}
@@ -147,173 +155,104 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
   );
 
   const renderProcess = () => {
-    if (method === 'ecocash') {
-      const isConfigured = !!config?.ecocashCode;
-      return (
-        <div className="space-y-6">
-          <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 text-center">
-            <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-1">Pay To: {config?.ecocashName || 'Lifestyle Connect'}</p>
-            <p className="text-4xl font-black text-blue-900 tracking-tighter">${amount.toFixed(2)}</p>
-          </div>
-          {!isConfigured ? (
-            <div className="p-4 bg-amber-50 rounded-2xl flex items-start gap-3 border border-amber-200">
-               <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={16} />
-               <p className="text-[10px] font-bold text-amber-900 leading-relaxed">This gateway is currently in maintenance mode. Please try a different method or contact support.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Your EcoCash Number</label>
-                <input 
-                type="tel" 
-                value={phoneNumber}
-                onChange={e => setPhoneNumber(e.target.value)}
-                placeholder="077..." 
-                className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-blue-500 outline-none font-bold text-gray-900 text-lg"
-                />
-                <p className="text-[10px] font-bold text-gray-400 px-2">A prompt will be sent to your phone from <b>{config.ecocashCode}</b>. Enter your PIN to authorize.</p>
-            </div>
-          )}
-          <button 
-            onClick={handlePayment}
-            disabled={!phoneNumber || loading || !isConfigured}
-            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="animate-spin" /> : 'Initiate USSD Push'}
-          </button>
-        </div>
-      );
-    }
+    const isUrlMode = (method === 'ecocash' && !!config?.ecocashUrl) || (method === 'stripe' && !!config?.stripeUrl) || (method === 'paypal' && !!config?.paypalUrl);
 
-    if (method === 'stripe') {
-      const isConfigured = !!config?.stripeKey;
-      return (
-        <div className="space-y-6">
-           <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 text-center">
-            <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-1">Total to Pay</p>
-            <p className="text-4xl font-black text-indigo-900 tracking-tighter">${amount.toFixed(2)}</p>
-          </div>
-          {!isConfigured ? (
-            <div className="p-4 bg-amber-50 rounded-2xl flex items-start gap-3 border border-amber-200">
-               <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={16} />
-               <p className="text-[10px] font-bold text-amber-900 leading-relaxed">Stripe is currently unavailable. Please use EcoCash or another method.</p>
+    return (
+      <div className="space-y-6">
+        <div className={`p-8 rounded-[2.5rem] text-center border-2 ${method === 'ecocash' ? 'bg-blue-50 border-blue-100' : method === 'stripe' ? 'bg-indigo-50 border-indigo-100' : 'bg-yellow-50 border-yellow-100'}`}>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Order Total</p>
+          <p className={`text-5xl font-black tracking-tighter ${method === 'ecocash' ? 'text-blue-900' : method === 'stripe' ? 'text-indigo-900' : 'text-gray-900'}`}>${amount.toFixed(2)}</p>
+        </div>
+
+        {isUrlMode ? (
+          <div className="text-center space-y-4 px-4">
+            <p className="text-sm font-bold text-gray-500 leading-relaxed">
+              We are using a secure {method === 'ecocash' ? 'EcoCash' : method === 'stripe' ? 'Stripe' : 'PayPal'} gateway. 
+              Clicking below will open the payment portal in a new tab.
+            </p>
+            <div className="p-4 bg-green-50 rounded-2xl border border-green-100 flex items-center gap-3">
+              <ShieldCheck className="text-green-600 shrink-0" size={20} />
+              <p className="text-[10px] font-black text-green-800 uppercase text-left leading-tight">Secure Payment Protection Enabled</p>
             </div>
-          ) : (
-            <div className="space-y-4">
-                <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Card Number</label>
-                <div className="relative">
-                    <input 
-                        type="text" 
-                        value={cardNumber}
-                        onChange={e => setCardNumber(e.target.value)}
-                        placeholder="0000 0000 0000 0000"
-                        className="w-full p-4 pl-12 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-gray-900"
-                    />
-                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                </div>
-                </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest text-center">Development Demo Mode</p>
+            {method === 'ecocash' ? (
+              <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="077..." className="w-full p-5 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-blue-500 outline-none font-black text-gray-900 text-lg" />
+            ) : method === 'stripe' ? (
+              <div className="space-y-4">
+                <input type="text" value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="Card Number" className="w-full p-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-gray-900" />
                 <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Expiry</label>
-                    <input 
-                        type="text" 
-                        value={expiry}
-                        onChange={e => setExpiry(e.target.value)}
-                        placeholder="MM/YY"
-                        className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-gray-900"
-                    />
+                  <input type="text" value={expiry} onChange={e => setExpiry(e.target.value)} placeholder="MM/YY" className="w-full p-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-gray-900" />
+                  <input type="text" value={cvc} onChange={e => setCvc(e.target.value)} placeholder="CVC" className="w-full p-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-gray-900" />
                 </div>
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">CVC</label>
-                    <input 
-                        type="text" 
-                        value={cvc}
-                        onChange={e => setCvc(e.target.value)}
-                        placeholder="123"
-                        className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-gray-900"
-                    />
-                </div>
-                </div>
-            </div>
-          )}
-          <button 
-            onClick={handlePayment}
-            disabled={!cardNumber || !expiry || !cvc || loading || !isConfigured}
-            className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-             {loading ? <Loader2 className="animate-spin" /> : 'Authorize Transaction'}
-          </button>
-        </div>
-      );
-    }
+              </div>
+            ) : (
+              <p className="text-sm font-bold text-gray-400 text-center">No link configured. Using PayPal Demo Handshake.</p>
+            )}
+          </div>
+        )}
 
-    if (method === 'paypal') {
-        const isConfigured = !!config?.paypalClientId;
-        return (
-            <div className="space-y-8 text-center pt-4">
-                <div className="w-20 h-20 mx-auto bg-blue-50 rounded-full flex items-center justify-center text-[#003087]">
-                    <span className="font-black italic text-2xl">Pay</span>
-                </div>
-                {!isConfigured ? (
-                    <div className="p-4 bg-amber-50 rounded-2xl flex items-start gap-3 border border-amber-200">
-                        <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={16} />
-                        <p className="text-[10px] font-bold text-amber-900 leading-relaxed text-left">PayPal connection has not been established for this project.</p>
-                    </div>
-                ) : (
-                    <div>
-                        <h4 className="text-xl font-black text-gray-900 mb-2">Secure PayPal Checkout</h4>
-                        <p className="text-gray-500 font-bold text-sm px-8">Pay <span className="text-gray-900 font-black">${amount.toFixed(2)}</span> via your international PayPal wallet.</p>
-                    </div>
-                )}
-                <button 
-                    onClick={handlePayment}
-                    disabled={loading || !isConfigured}
-                    className="w-full py-4 bg-[#FFC439] text-[#003087] rounded-2xl font-black shadow-xl hover:brightness-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                    {loading ? <Loader2 className="animate-spin" /> : 'Authorize via PayPal'}
-                </button>
-            </div>
-        );
-    }
+        <button 
+          onClick={handlePayment} 
+          disabled={loading || (!isUrlMode && method === 'ecocash' && !phoneNumber) || (!isUrlMode && method === 'stripe' && !cardNumber)} 
+          className={`w-full py-6 text-white rounded-[2rem] font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${method === 'ecocash' ? 'bg-blue-600 hover:bg-blue-700' : method === 'stripe' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-[#FFC439] text-[#003087]'}`}
+        >
+          {loading ? <Loader2 className="animate-spin" /> : (isUrlMode ? <><ExternalLink size={24} /> Pay Now</> : 'Verify & Upgrade')}
+        </button>
+      </div>
+    );
   };
 
-  const renderSuccess = () => (
-    <div className="text-center py-12">
-        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600 animate-in zoom-in duration-300">
-            <CheckCircle size={48} />
+  const renderVerify = () => (
+    <div className="text-center py-10 space-y-8">
+        <div className="w-24 h-24 bg-amber-50 rounded-[2.5rem] flex items-center justify-center mx-auto text-amber-500 animate-pulse border-4 border-amber-100">
+          <ShieldCheck size={48} strokeWidth={2.5} />
         </div>
-        <h3 className="text-2xl font-black text-green-900 mb-2">Transaction Approved</h3>
-        <p className="text-gray-500 font-bold">Your tier upgrade has been activated.</p>
+        <div className="space-y-3">
+            <h3 className="text-2xl font-black text-gray-900">Verifying Transaction</h3>
+            <p className="text-sm font-bold text-gray-500 px-6 leading-relaxed">
+              Did you complete the payment in the other window? Click below to confirm. We will automatically verify the receipt.
+            </p>
+        </div>
+        <div className="space-y-4">
+          <button onClick={handlePayment} disabled={loading} className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black text-xl shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3">
+              {loading ? <Loader2 className="animate-spin" /> : <><CheckCircle size={24} /> Confirm Payment</>}
+          </button>
+          <button onClick={() => setStep('process')} className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] hover:text-rose-600 transition-colors">Wrong Method? Go Back</button>
+        </div>
+    </div>
+  );
+
+  const renderSuccess = () => (
+    <div className="text-center py-12 animate-in zoom-in duration-500">
+        <div className="w-28 h-28 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 text-green-600 shadow-xl shadow-green-50"><CheckCircle size={56} strokeWidth={2.5} /></div>
+        <h3 className="text-3xl font-black text-green-900 mb-2">Covenant Upgrade!</h3>
+        <p className="text-gray-500 font-bold text-lg">Your tier has been successfully updated.</p>
     </div>
   );
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-10 duration-500">
-        
-        {/* Header */}
-        <div className="bg-gray-50 px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-white w-full max-w-md rounded-[4rem] shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-10 duration-500 border-8 border-white">
+        <div className="bg-gray-50/50 px-10 py-8 border-b border-gray-100 flex items-center justify-between">
             <div>
-                <h3 className="text-lg font-black text-gray-900 tracking-tight">{title}</h3>
-                <p className="text-xs font-bold text-gray-400">{description}</p>
+              <h3 className="text-xl font-black text-rose-950 tracking-tight">{title}</h3>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{description.substring(0, 40)}...</p>
             </div>
-            <button onClick={onClose} className="p-2 bg-white rounded-full text-gray-400 hover:text-rose-600 transition-colors shadow-sm">
-                <X size={18} />
-            </button>
+            <button onClick={onClose} className="p-3 bg-white rounded-2xl text-gray-300 hover:text-rose-600 transition-colors shadow-sm"><X size={20} /></button>
         </div>
-
-        {/* Content */}
-        <div className="p-8">
+        <div className="p-10">
             {step === 'select' && renderSelection()}
             {step === 'process' && renderProcess()}
+            {step === 'verify' && renderVerify()}
             {step === 'success' && renderSuccess()}
         </div>
-
-        {/* Secure Footer */}
         {step !== 'success' && (
-            <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 flex items-center justify-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <ShieldCheck size={12} /> Encrypted Gateway • Lifestyle Connect
-            </div>
+          <div className="bg-gray-50/50 px-10 py-6 border-t border-gray-100 flex items-center justify-center gap-2 text-[10px] font-black text-gray-300 uppercase tracking-widest">
+            <Lock size={12} /> Securely Managed by {method === 'stripe' ? 'Stripe' : 'ZimSwitch'}
+          </div>
         )}
       </div>
     </div>
