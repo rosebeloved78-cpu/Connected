@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Vendor, Gift as GiftType } from '../types';
-import { collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { VENDOR_CATEGORIES } from '../constants';
 import { ShieldCheck, CreditCard, Users, Mic, Plus, Trash2, Save, Store, Smartphone, DollarSign, LayoutDashboard, Loader2, Upload, MapPin, Phone, Mail, Image as ImageIcon, Video, Youtube, Gift as GiftIcon, Link as LinkIcon, AlertCircle, FileText, Radio, CheckCircle } from 'lucide-react';
@@ -176,7 +176,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
             userId: user.id,
             userName: 'Site Administrator',
             content: adminPostContent,
-            timestamp: new Date(),
+            timestamp: Timestamp.now(),
             isAdminPost: true,
             audioUrl: adminAudio || null,
             comments: []
@@ -191,14 +191,17 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = videoUrl.match(regExp);
     const videoId = (match && match[2].length === 11) ? match[2] : null;
-    if (!videoTitle || !videoId) return;
+    
+    if (!videoTitle) { alert("Please provide a title."); return; }
+    if (!videoId) { alert("Invalid YouTube URL. Please use a direct watch link."); return; }
+    
     setLoading(true);
     try {
         await addDoc(collection(db, "admin_videos"), {
             title: videoTitle,
             url: videoUrl,
             videoId: videoId,
-            timestamp: new Date()
+            timestamp: Timestamp.now()
         });
         setVideoTitle(''); setVideoUrl('');
         alert('Video tutorial added.');
@@ -212,7 +215,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
         await addDoc(collection(db, "admin_live"), {
             title: liveTitle,
             url: liveUrl,
-            timestamp: new Date(),
+            timestamp: Timestamp.now(),
             active: true
         });
         setLiveTitle(''); setLiveUrl('');
