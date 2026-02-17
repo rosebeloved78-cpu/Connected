@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, PrayerPost, Testimony, FriendshipPost, Comment, Vendor, VideoPost } from '../types';
 import { Link } from 'react-router-dom';
-import { MessageCircle, Heart, Star, Users, Camera, MapPin, Hand, Send, Mic, Play, Music, ShieldCheck, Stars, Sparkles, MessageSquare, Lock, CheckCircle2, Coffee, Armchair, Church, DollarSign, Video } from 'lucide-react';
+import { MessageCircle, Heart, Star, Users, Camera, MapPin, Hand, Send, Mic, Play, Music, ShieldCheck, Stars, Sparkles, MessageSquare, Lock, CheckCircle2, Coffee, Armchair, Church, DollarSign, Video, Radio, ExternalLink } from 'lucide-react';
 import { VENDORS as STATIC_VENDORS, VENDOR_CATEGORIES } from '../constants';
 import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, updateDoc, arrayUnion, doc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -15,6 +15,7 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
   const [testimonies, setTestimonies] = useState<Testimony[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [videos, setVideos] = useState<VideoPost[]>([]);
+  const [lives, setLives] = useState<any[]>([]);
   
   // -- UI State --
   const [selectedVendorCategory, setSelectedVendorCategory] = useState(VENDOR_CATEGORIES[0]);
@@ -47,19 +48,25 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
       setVideos(snapshot.docs.map(d => ({ id: d.id, ...d.data(), timestamp: d.data().timestamp?.toDate() } as VideoPost)));
     });
 
-    // 4. Friendship Bench Listener
+    // 4. Admin Live Sessions Listener
+    const qLive = query(collection(db, "admin_live"), orderBy("timestamp", "desc"));
+    const unsubLive = onSnapshot(qLive, (snapshot) => {
+      setLives(snapshot.docs.map(d => ({ id: d.id, ...d.data(), timestamp: d.data().timestamp?.toDate() })));
+    });
+
+    // 5. Friendship Bench Listener
     const qFriends = query(collection(db, "friendship_posts"), orderBy("timestamp", "desc"));
     const unsubFriends = onSnapshot(qFriends, (snapshot) => {
       setFriendshipPosts(snapshot.docs.map(d => ({ id: d.id, ...d.data(), timestamp: d.data().timestamp?.toDate() } as FriendshipPost)));
     });
 
-    // 5. Testimonies Listener
+    // 6. Testimonies Listener
     const qTestimonies = query(collection(db, "testimonies"), orderBy("timestamp", "desc"));
     const unsubTestimonies = onSnapshot(qTestimonies, (snapshot) => {
       setTestimonies(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Testimony)));
     });
 
-    // 6. Vendors Fetch (One time)
+    // 7. Vendors Fetch (One time)
     const fetchVendors = async () => {
       try {
         const snap = await getDocs(collection(db, 'vendors'));
@@ -79,6 +86,7 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
       unsubPrayers();
       unsubAdmin();
       unsubVideos();
+      unsubLive();
       unsubFriends();
       unsubTestimonies();
     };
@@ -203,6 +211,44 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
         </section>
       )}
 
+      {/* LIVE SANCTUARY: Admin Live Sessions */}
+      {lives.length > 0 && (
+        <section>
+          <div className="flex items-center gap-6 mb-12">
+            <div className="bg-rose-600 p-4 rounded-3xl text-white shadow-xl shadow-rose-100">
+              <Radio size={32} className="animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-4xl font-black text-rose-950 tracking-tight">Live Sanctuary</h2>
+              <p className="text-rose-400 font-black uppercase text-[10px] tracking-[0.3em] mt-1 italic">Join live prayer and intercession sessions</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {lives.filter(l => l.active).map((l) => (
+              <div key={l.id} className="bg-white rounded-[3.5rem] p-10 shadow-2xl border-4 border-rose-50 flex items-center justify-between gap-6 group hover:border-rose-200 transition-all">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-rose-600 animate-ping"></span>
+                    <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Happening Now</span>
+                  </div>
+                  <h3 className="text-2xl font-black text-rose-950 tracking-tight">{l.title}</h3>
+                  <p className="text-xs font-bold text-gray-400">Pastoral lead session. Join our global gathering.</p>
+                </div>
+                <a 
+                  href={l.url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="px-8 py-5 bg-rose-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-rose-100"
+                >
+                  Join Sanctuary <ExternalLink size={16} />
+                </a>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* KINGDOM VISION: Admin Video Gallery */}
       {videos.length > 0 && (
         <section>
@@ -229,7 +275,7 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
                 <div className="px-4 pb-4">
                     <h3 className="font-black text-rose-950 text-lg leading-tight mb-2">{v.title}</h3>
                     <div className="flex items-center gap-2">
-                         <span className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-[9px] font-black uppercase tracking-widest">Watch Now</span>
+                         <span className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-[9px] font-black uppercase tracking-widest">Official Teaching</span>
                          <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{v.timestamp?.toLocaleDateString()}</span>
                     </div>
                 </div>
@@ -257,7 +303,7 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
               <div className="relative z-10 flex-1">
                 <div className="flex items-center gap-2 mb-6">
                   <span className="px-4 py-1.5 bg-amber-400 text-indigo-950 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm">Official Admin</span>
-                  <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">{p.timestamp.toLocaleDateString()}</span>
+                  <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">{p.timestamp?.toLocaleDateString()}</span>
                 </div>
                 <p className="text-indigo-950 text-xl font-bold italic mb-10 leading-relaxed">"{p.content}"</p>
                 {p.audioUrl && (
@@ -582,7 +628,7 @@ const CommentSection = ({ collectionName, id, comments, activeUser, onAddComment
               <div key={c.id} className="bg-gray-50 p-4 rounded-2xl">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[9px] font-black uppercase text-rose-600">{c.userName}</span>
-                  <span className="text-[8px] font-bold text-gray-300 uppercase">{new Date(c.timestamp.seconds * 1000 || c.timestamp).toLocaleDateString()}</span>
+                  <span className="text-[8px] font-bold text-gray-300 uppercase">{new Date(c.timestamp?.seconds * 1000 || c.timestamp).toLocaleDateString()}</span>
                 </div>
                 <p className="text-sm font-bold text-gray-800 leading-snug">{c.content}</p>
               </div>
