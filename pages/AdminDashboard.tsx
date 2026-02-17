@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Vendor, Gift } from '../types';
+import { User, Vendor, Gift as GiftType } from '../types';
 import { collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { VENDOR_CATEGORIES } from '../constants';
-import { ShieldCheck, CreditCard, Users, Mic, Plus, Trash2, Save, Store, Smartphone, DollarSign, LayoutDashboard, Loader2, Upload, MapPin, Phone, Mail, Image as ImageIcon, Video, Youtube, Gift as GiftIcon, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { ShieldCheck, CreditCard, Users, Mic, Plus, Trash2, Save, Store, Smartphone, DollarSign, LayoutDashboard, Loader2, Upload, MapPin, Phone, Mail, Image as ImageIcon, Video, Youtube, Gift as GiftIcon, Link as LinkIcon, AlertCircle, FileText, Radio, CheckCircle } from 'lucide-react';
 
 const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   const [activeTab, setActiveTab] = useState<'payments' | 'vendors' | 'gifts' | 'content'>('payments');
@@ -26,6 +25,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   const initialVendorState = { 
     name: '', 
     category: VENDOR_CATEGORIES[0], 
+    description: '',
     location: 'Harare', 
     address: '',
     phone: '',
@@ -37,18 +37,20 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   const vendorImageInputRef = useRef<HTMLInputElement>(null);
 
   // -- Gift State --
-  const [gifts, setGifts] = useState<Gift[]>([]);
-  const initialGiftState = { name: '', price: 0, provider: '', image: '' };
+  const [gifts, setGifts] = useState<GiftType[]>([]);
+  const initialGiftState = { name: '', price: 0, provider: '', phone: '', image: '' };
   const [newGift, setNewGift] = useState(initialGiftState);
   const giftImageInputRef = useRef<HTMLInputElement>(null);
   
   // -- Content State --
-  const [contentSubTab, setContentSubTab] = useState<'audio' | 'video'>('audio');
+  const [contentSubTab, setContentSubTab] = useState<'audio' | 'video' | 'live'>('audio');
   const [adminPostContent, setAdminPostContent] = useState('');
   const [adminAudio, setAdminAudio] = useState<string | null>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+  const [liveTitle, setLiveTitle] = useState('');
+  const [liveUrl, setLiveUrl] = useState('');
 
   useEffect(() => {
     fetchVendors();
@@ -78,7 +80,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   const fetchGifts = async () => {
     try {
       const snap = await getDocs(collection(db, 'gifts'));
-      setGifts(snap.docs.map(d => ({ id: d.id, ...d.data() } as Gift)));
+      setGifts(snap.docs.map(d => ({ id: d.id, ...d.data() } as GiftType)));
     } catch (e) { console.error(e); }
   };
 
@@ -87,7 +89,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
     try {
       const docRef = doc(db, 'settings', 'payments');
       await setDoc(docRef, paymentSettings);
-      alert('Payment gateways updated successfully. Users will now be redirected to these links.');
+      alert('Payment gateways updated successfully.');
     } catch (e) {
       console.error("Error saving payment settings:", e);
       alert('Failed to save payment settings.');
@@ -96,7 +98,6 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
-  // Vendor & Gift handlers remain the same to minimize changes
   const handleVendorImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -115,6 +116,26 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
     });
   };
 
+  const handleGiftImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewGift(prev => ({ ...prev, image: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAdminAudio(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAddVendor = async () => {
     if(!newVendor.name) return;
     setLoading(true);
@@ -122,6 +143,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
       await addDoc(collection(db, 'vendors'), newVendor);
       setNewVendor(initialVendorState);
       fetchVendors();
+      alert('Vendor added successfully.');
     } catch(e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -137,6 +159,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
       await addDoc(collection(db, 'gifts'), newGift);
       setNewGift(initialGiftState);
       fetchGifts();
+      alert('Gift added successfully.');
     } catch(e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -160,6 +183,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
         });
         setAdminPostContent('');
         setAdminAudio(null);
+        alert('Pastoral message posted.');
     } catch(e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -177,6 +201,22 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
             timestamp: new Date()
         });
         setVideoTitle(''); setVideoUrl('');
+        alert('Video tutorial added.');
+    } catch(e) { console.error(e); } finally { setLoading(false); }
+  };
+
+  const handlePostLive = async () => {
+    if (!liveTitle || !liveUrl) return;
+    setLoading(true);
+    try {
+        await addDoc(collection(db, "admin_live"), {
+            title: liveTitle,
+            url: liveUrl,
+            timestamp: new Date(),
+            active: true
+        });
+        setLiveTitle(''); setLiveUrl('');
+        alert('Live prayer session scheduled.');
     } catch(e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -215,9 +255,6 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
                 <div className="bg-white p-10 rounded-[4rem] shadow-2xl border-4 border-white animate-in slide-in-from-right-10">
                     <div className="flex items-center justify-between mb-8">
                       <h2 className="text-3xl font-black text-gray-900 flex items-center gap-3"><DollarSign className="text-blue-600" /> Gateway Setup</h2>
-                      <div className="bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 text-amber-600 font-black text-[10px] uppercase tracking-widest">
-                        <AlertCircle size={14} /> Use secure HTTPS links
-                      </div>
                     </div>
                     
                     <div className="space-y-10">
@@ -230,90 +267,246 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
                                     <input value={paymentSettings.ecocashName} onChange={e => setPaymentSettings({...paymentSettings, ecocashName: e.target.value})} placeholder="e.g. Lifestyle Connect Zim" className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold outline-none" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4">USSD Shortcode (Optional)</label>
-                                    <input value={paymentSettings.ecocashCode} onChange={e => setPaymentSettings({...paymentSettings, ecocashCode: e.target.value})} placeholder="e.g. *151*2*1*..." className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold outline-none" />
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4">USSD Shortcode</label>
+                                    <input value={paymentSettings.ecocashCode} onChange={e => setPaymentSettings({...paymentSettings, ecocashCode: e.target.value})} placeholder="e.g. *151*2*..." className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold outline-none" />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4 flex items-center gap-2">EcoCash Web Portal / Paynow Link</label>
-                                <input value={paymentSettings.ecocashUrl} onChange={e => setPaymentSettings({...paymentSettings, ecocashUrl: e.target.value})} className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold font-mono text-sm outline-none" placeholder="https://www.paynow.co.zw/..." />
-                                <p className="text-[9px] font-bold text-blue-400 px-4">If set, users will be redirected to this link to pay before they can verify.</p>
-                            </div>
-                        </div>
-
-                        {/* Stripe Section */}
-                        <div className="p-8 bg-gray-50 rounded-[3rem] border-2 border-gray-100">
-                            <h3 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-6"><CreditCard size={24} /> Stripe Checkout</h3>
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-4">Stripe Publishable Key</label>
-                                    <input value={paymentSettings.stripeKey} onChange={e => setPaymentSettings({...paymentSettings, stripeKey: e.target.value})} placeholder="pk_live_..." className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-indigo-400 font-bold font-mono text-sm outline-none" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-4">Stripe Payment Link (Preferred)</label>
-                                    <input value={paymentSettings.stripeUrl} onChange={e => setPaymentSettings({...paymentSettings, stripeUrl: e.target.value})} className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-indigo-400 font-bold font-mono text-sm outline-none" placeholder="https://buy.stripe.com/..." />
-                                    <p className="text-[9px] font-bold text-gray-400 px-4">Create a 'Payment Link' in your Stripe Dashboard for easiest integration.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* PayPal Section */}
-                        <div className="p-8 bg-blue-50/20 rounded-[3rem] border-2 border-blue-100">
-                            <h3 className="text-xl font-black text-blue-900 flex items-center gap-2 mb-6"><LinkIcon size={24} /> PayPal Portal</h3>
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4">PayPal Client ID</label>
-                                    <input value={paymentSettings.paypalClientId} onChange={e => setPaymentSettings({...paymentSettings, paypalClientId: e.target.value})} placeholder="Client ID from PayPal Developer Portal" className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold font-mono text-sm outline-none" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4">PayPal.me or Checkout URL</label>
-                                    <input value={paymentSettings.paypalUrl} onChange={e => setPaymentSettings({...paymentSettings, paypalUrl: e.target.value})} className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold font-mono text-sm outline-none" placeholder="https://www.paypal.com/ncp/payment/..." />
-                                    <p className="text-[9px] font-bold text-blue-400 px-4">Direct link to a PayPal 'Buy Now' button or PayPal.me link.</p>
-                                </div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4">Payment Link</label>
+                                <input value={paymentSettings.ecocashUrl} onChange={e => setPaymentSettings({...paymentSettings, ecocashUrl: e.target.value})} className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold font-mono text-sm outline-none" placeholder="https://..." />
                             </div>
                         </div>
 
                         <div className="flex justify-end pt-4">
-                            <button onClick={handleSavePayments} disabled={loading} className="px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black shadow-2xl hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-3">
-                                {loading ? <Loader2 className="animate-spin" /> : <><Save size={24} /> Synchronize Gateways</>}
+                            <button onClick={handleSavePayments} disabled={loading} className="px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black shadow-2xl hover:bg-blue-700 transition-all flex items-center gap-3">
+                                {loading ? <Loader2 className="animate-spin" /> : <><Save size={24} /> Save Gateway Settings</>}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-            {/* Other tabs remain essentially the same, but with the same high-end styling */}
+
             {activeTab === 'vendors' && (
               <div className="space-y-8 animate-in slide-in-from-right-10">
                 <div className="bg-white p-10 rounded-[4rem] shadow-2xl border-4 border-white">
-                  <h2 className="text-2xl font-black mb-8">Add Vendor Partner</h2>
+                  <h2 className="text-3xl font-black mb-8 flex items-center gap-3 text-rose-600"><Plus /> Register New Partner</h2>
                   <div className="grid md:grid-cols-2 gap-6">
-                    <input placeholder="Vendor Name" value={newVendor.name} onChange={e => setNewVendor({...newVendor, name: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-rose-400 font-bold" />
-                    <select value={newVendor.category} onChange={e => setNewVendor({...newVendor, category: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-rose-400 font-bold">
-                      {VENDOR_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    </select>
-                    <input placeholder="City" value={newVendor.location} onChange={e => setNewVendor({...newVendor, location: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-rose-400 font-bold" />
-                    <button onClick={handleAddVendor} className="px-8 py-4 bg-rose-600 text-white rounded-2xl font-black shadow-lg">Save Vendor</button>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Vendor Name</label>
+                      <input placeholder="Enter Business Name" value={newVendor.name} onChange={e => setNewVendor({...newVendor, name: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-rose-400 font-bold outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Category</label>
+                      <select value={newVendor.category} onChange={e => setNewVendor({...newVendor, category: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-rose-400 font-bold outline-none">
+                        {VENDOR_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Description</label>
+                      <textarea placeholder="Describe services offered..." value={newVendor.description} onChange={e => setNewVendor({...newVendor, description: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-rose-400 font-bold min-h-[100px] outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Address</label>
+                      <input placeholder="Physical Address" value={newVendor.address} onChange={e => setNewVendor({...newVendor, address: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-rose-400 font-bold outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Phone Number</label>
+                      <input placeholder="e.g. +263 77..." value={newVendor.phone} onChange={e => setNewVendor({...newVendor, phone: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-rose-400 font-bold outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Price Range</label>
+                      <input placeholder="e.g. $50 - $200" value={newVendor.priceRange} onChange={e => setNewVendor({...newVendor, priceRange: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-rose-400 font-bold outline-none" />
+                    </div>
                   </div>
+                  
+                  <div className="mt-8 space-y-4">
+                    <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Gallery (Max 5 Photos)</label>
+                    <div className="flex flex-wrap gap-4">
+                      {newVendor.images.map((img, i) => (
+                        <div key={i} className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-rose-100 relative group">
+                          <img src={img} className="w-full h-full object-cover" />
+                          <button onClick={() => setNewVendor({...newVendor, images: newVendor.images.filter((_, idx) => idx !== i)})} className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} /></button>
+                        </div>
+                      ))}
+                      {newVendor.images.length < 5 && (
+                        <button onClick={() => vendorImageInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-4 border-dashed border-rose-100 flex flex-col items-center justify-center text-rose-200 hover:bg-rose-50 transition-all">
+                          <ImageIcon size={24} />
+                          <span className="text-[8px] font-black uppercase mt-1">Upload</span>
+                        </button>
+                      )}
+                    </div>
+                    <input ref={vendorImageInputRef} type="file" multiple hidden accept="image/*" onChange={handleVendorImageUpload} />
+                  </div>
+
+                  <button onClick={handleAddVendor} disabled={loading} className="w-full mt-10 py-5 bg-rose-600 text-white rounded-[2rem] font-black shadow-xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2">
+                    {loading ? <Loader2 className="animate-spin" /> : <><Plus /> Save Vendor Partner</>}
+                  </button>
+                </div>
+
+                <div className="bg-white p-10 rounded-[4rem] shadow-2xl border-4 border-white">
+                    <h2 className="text-2xl font-black mb-8">Existing Vendors</h2>
+                    <div className="space-y-4">
+                        {vendors.map(v => (
+                            <div key={v.id} className="p-6 rounded-3xl bg-gray-50 border-2 border-gray-100 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-gray-200 overflow-hidden">
+                                        <img src={v.images[0] || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-rose-950">{v.name}</h4>
+                                        <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">{v.category}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => handleDeleteVendor(v.id)} className="p-3 text-rose-400 hover:text-rose-600 transition-colors"><Trash2 size={20} /></button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
               </div>
             )}
+
             {activeTab === 'gifts' && (
               <div className="space-y-8 animate-in slide-in-from-right-10">
                 <div className="bg-white p-10 rounded-[4rem] shadow-2xl border-4 border-white">
-                  <h2 className="text-2xl font-black mb-8">Catalog Management</h2>
+                  <h2 className="text-3xl font-black mb-8 flex items-center gap-3 text-pink-600"><GiftIcon /> Add to Catalog</h2>
                   <div className="grid md:grid-cols-2 gap-6">
-                    <input placeholder="Gift Item Name" value={newGift.name} onChange={e => setNewGift({...newGift, name: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-pink-400 font-bold" />
-                    <input placeholder="Price USD" type="number" value={newGift.price || ''} onChange={e => setNewGift({...newGift, price: parseFloat(e.target.value)})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-pink-400 font-bold" />
-                    <button onClick={handleAddGift} className="px-8 py-4 bg-pink-600 text-white rounded-2xl font-black shadow-lg">Add to Shop</button>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-pink-400 uppercase tracking-widest ml-4">Gift Item Name</label>
+                      <input placeholder="e.g. Rose Bouquet" value={newGift.name} onChange={e => setNewGift({...newGift, name: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-pink-400 font-bold outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-pink-400 uppercase tracking-widest ml-4">Price (USD)</label>
+                      <input type="number" placeholder="25.00" value={newGift.price || ''} onChange={e => setNewGift({...newGift, price: parseFloat(e.target.value)})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-pink-400 font-bold outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-pink-400 uppercase tracking-widest ml-4">Shop Name</label>
+                      <input placeholder="Enter Merchant Name" value={newGift.provider} onChange={e => setNewGift({...newGift, provider: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-pink-400 font-bold outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-pink-400 uppercase tracking-widest ml-4">Phone Number</label>
+                      <input placeholder="+263..." value={newGift.phone} onChange={e => setNewGift({...newGift, phone: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-pink-400 font-bold outline-none" />
+                    </div>
                   </div>
+                  
+                  <div className="mt-8 space-y-4">
+                    <label className="text-[10px] font-black text-pink-400 uppercase tracking-widest ml-4">Product Photo (1 Max)</label>
+                    <div className="flex gap-4">
+                      {newGift.image ? (
+                        <div className="w-48 h-32 rounded-3xl overflow-hidden border-2 border-pink-100 relative group">
+                          <img src={newGift.image} className="w-full h-full object-cover" />
+                          <button onClick={() => setNewGift({...newGift, image: ''})} className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 /></button>
+                        </div>
+                      ) : (
+                        <button onClick={() => giftImageInputRef.current?.click()} className="w-48 h-32 rounded-3xl border-4 border-dashed border-pink-100 flex flex-col items-center justify-center text-pink-200 hover:bg-pink-50 transition-all">
+                          <ImageIcon size={32} />
+                          <span className="text-[10px] font-black uppercase mt-2">Upload Photo</span>
+                        </button>
+                      )}
+                    </div>
+                    <input ref={giftImageInputRef} type="file" hidden accept="image/*" onChange={handleGiftImageUpload} />
+                  </div>
+
+                  <button onClick={handleAddGift} disabled={loading} className="w-full mt-10 py-5 bg-pink-600 text-white rounded-[2rem] font-black shadow-xl hover:bg-pink-700 transition-all flex items-center justify-center gap-2">
+                    {loading ? <Loader2 className="animate-spin" /> : <><Plus /> Add to Shop</>}
+                  </button>
+                </div>
+
+                <div className="bg-white p-10 rounded-[4rem] shadow-2xl border-4 border-white">
+                    <h2 className="text-2xl font-black mb-8 text-pink-900">Active Gift Catalog</h2>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {gifts.map(g => (
+                            <div key={g.id} className="p-6 rounded-3xl bg-gray-50 border-2 border-gray-100 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <img src={g.image} className="w-16 h-16 rounded-2xl object-cover" />
+                                    <div>
+                                        <h4 className="font-black text-pink-950">{g.name}</h4>
+                                        <p className="text-xs font-bold text-gray-500">${g.price} • {g.provider}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => handleDeleteGift(g.id)} className="p-3 text-pink-400 hover:text-pink-600 transition-colors"><Trash2 size={20} /></button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
               </div>
             )}
+
             {activeTab === 'content' && (
               <div className="bg-white p-10 rounded-[4rem] shadow-2xl border-4 border-white animate-in slide-in-from-right-10">
-                <h2 className="text-2xl font-black mb-8">Community Broadcast</h2>
-                <textarea value={adminPostContent} onChange={e => setAdminPostContent(e.target.value)} placeholder="Type pastoral message..." className="w-full p-6 rounded-3xl bg-indigo-50 border-2 border-transparent focus:border-indigo-400 font-bold min-h-[200px]" />
-                <button onClick={handlePostContent} className="mt-6 px-12 py-5 bg-indigo-600 text-white rounded-[2rem] font-black shadow-xl">Post Pastoral Message</button>
+                <div className="flex items-center gap-4 mb-10 overflow-x-auto pb-2 no-scrollbar">
+                  {[
+                    { id: 'audio', icon: Radio, label: 'Audio Upload' },
+                    { id: 'video', icon: Youtube, label: 'Video Embed' },
+                    { id: 'live', icon: Radio, label: 'Pray Live' }
+                  ].map(sub => (
+                    <button 
+                      key={sub.id} 
+                      onClick={() => setContentSubTab(sub.id as any)} 
+                      className={`px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all border-2 ${contentSubTab === sub.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-indigo-50 border-transparent text-indigo-400'}`}
+                    >
+                      <sub.icon size={16} /> {sub.label}
+                    </button>
+                  ))}
+                </div>
+
+                {contentSubTab === 'audio' && (
+                  <div className="space-y-6 animate-in fade-in">
+                    <h2 className="text-2xl font-black mb-4 flex items-center gap-3 text-indigo-900"><Mic /> Pastoral Audio Message</h2>
+                    <textarea value={adminPostContent} onChange={e => setAdminPostContent(e.target.value)} placeholder="Type devotional message..." className="w-full p-6 rounded-3xl bg-indigo-50 border-2 border-transparent focus:border-indigo-400 font-bold min-h-[120px] outline-none" />
+                    <div className="p-6 bg-gray-50 rounded-3xl border-2 border-dashed border-indigo-100">
+                      {adminAudio ? (
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-black text-indigo-600 uppercase">Audio Loaded Successfully</p>
+                          <button onClick={() => setAdminAudio(null)} className="text-red-500 hover:text-red-700"><Trash2 size={20} /></button>
+                        </div>
+                      ) : (
+                        <button onClick={() => audioInputRef.current?.click()} className="w-full py-4 flex flex-col items-center gap-2 text-indigo-300">
+                          <Upload />
+                          <span className="text-xs font-black uppercase">Click to Upload Audio File</span>
+                        </button>
+                      )}
+                      <input ref={audioInputRef} type="file" hidden accept="audio/*" onChange={handleAudioUpload} />
+                    </div>
+                    <button onClick={handlePostContent} disabled={loading} className="w-full py-5 bg-indigo-600 text-white rounded-[2rem] font-black shadow-xl">
+                      {loading ? <Loader2 className="animate-spin" /> : 'Post Audio Devotional'}
+                    </button>
+                  </div>
+                )}
+
+                {contentSubTab === 'video' && (
+                  <div className="space-y-6 animate-in fade-in">
+                    <h2 className="text-2xl font-black mb-4 flex items-center gap-3 text-indigo-900"><Youtube /> YouTube Video Embed</h2>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-4">Video Title</label>
+                        <input placeholder="Teaching Title" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-indigo-400 font-bold outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-4">YouTube URL</label>
+                        <input placeholder="e.g. https://www.youtube.com/watch?v=..." value={videoUrl} onChange={e => setVideoUrl(e.target.value)} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-indigo-400 font-bold outline-none" />
+                    </div>
+                    <button onClick={handlePostVideo} disabled={loading} className="w-full py-5 bg-indigo-600 text-white rounded-[2rem] font-black shadow-xl">
+                      {loading ? <Loader2 className="animate-spin" /> : 'Embed Video Teaching'}
+                    </button>
+                  </div>
+                )}
+
+                {contentSubTab === 'live' && (
+                  <div className="space-y-6 animate-in fade-in">
+                    <h2 className="text-2xl font-black mb-4 flex items-center gap-3 text-indigo-900"><Radio /> Launch Pray Live Session</h2>
+                    <p className="text-xs font-bold text-gray-500 mb-4 leading-relaxed">Schedule a live prayer session. Users will receive a notification to join your sanctuary stream.</p>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-4">Live Session Title</label>
+                        <input placeholder="e.g. Midnight Intercession" value={liveTitle} onChange={e => setLiveTitle(e.target.value)} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-indigo-400 font-bold outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-4">Stream URL / Link</label>
+                        <input placeholder="Zoom, YouTube Live, or Facebook Live Link" value={liveUrl} onChange={e => setLiveUrl(e.target.value)} className="w-full p-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-indigo-400 font-bold outline-none" />
+                    </div>
+                    <button onClick={handlePostLive} disabled={loading} className="w-full py-5 bg-indigo-600 text-white rounded-[2rem] font-black shadow-xl flex items-center justify-center gap-2">
+                      {loading ? <Loader2 className="animate-spin" /> : <><Radio className="animate-pulse" /> Launch Live Session</>}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
         </div>
