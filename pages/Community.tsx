@@ -4,6 +4,9 @@ import { User, PrayerPost, Testimony, FriendshipPost, Comment, Vendor, VideoPost
 import { Link } from 'react-router-dom';
 import { MessageCircle, Heart, Star, Users, Camera, MapPin, Hand, Send, Mic, Play, Music, ShieldCheck, Stars, Sparkles, MessageSquare, Lock, CheckCircle2, Coffee, Armchair, Church, DollarSign, Video, Radio, ExternalLink, Calendar, Plus, Upload } from 'lucide-react';
 import { VENDORS as STATIC_VENDORS, VENDOR_CATEGORIES } from '../constants';
+
+// Community Tab Categories
+const COMMUNITY_TABS = ['Prayer Board', 'Friendship Bench', 'Kingdom Testimonies', 'Lifestyle Connect Events'];
 import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, updateDoc, arrayUnion, doc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -20,6 +23,7 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
   
   // -- UI State --
   const [selectedVendorCategory, setSelectedVendorCategory] = useState(VENDOR_CATEGORIES[0]);
+  const [selectedCommunityTab, setSelectedCommunityTab] = useState('Prayer Board');
 
   // -- Input State --
   // Prayer
@@ -386,373 +390,402 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
         </div>
       </section>
 
-      {/* COMMUNITY PRAYER BOARD */}
-      <section>
-        <div className="flex items-center gap-4 mb-12">
-          <div className="bg-rose-100 p-4 rounded-3xl text-rose-600">
-            <Hand size={32} strokeWidth={3} />
-          </div>
-          <div>
-            <h2 className="text-4xl font-black text-rose-950 tracking-tight">Community Prayer Board</h2>
-            <p className="text-rose-400 font-black uppercase text-[10px] tracking-[0.3em] mt-1">Lifting each other in the Kingdom</p>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-1 relative">
-            {!user && <PublicOverlay />}
-            <div className={`bg-white p-10 rounded-[3.5rem] border-4 border-rose-50 shadow-2xl h-fit ${!user ? 'opacity-20 pointer-events-none' : ''}`}>
-              <h3 className="text-xl font-black text-rose-950 uppercase tracking-tight mb-6">Submit Request</h3>
-              <textarea 
-                value={newPrayer}
-                onChange={e => setNewPrayer(e.target.value)}
-                className="w-full p-6 rounded-[2rem] bg-rose-50/30 border-2 border-transparent focus:border-rose-100 outline-none min-h-[160px] font-bold text-rose-900 placeholder:text-rose-200"
-                placeholder="What can the community pray for?"
-              />
-              <div className="flex items-center justify-between mt-8">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-8 h-8 rounded-xl border-2 transition-all flex items-center justify-center ${isAnon ? 'bg-rose-600 border-rose-600 text-white shadow-md' : 'bg-white border-rose-100'}`}>
-                    {isAnon && <CheckCircle2 size={14} strokeWidth={4} />}
-                  </div>
-                  <input type="checkbox" checked={isAnon} onChange={e => setIsAnon(e.target.checked)} className="hidden" />
-                  <span className="text-xs font-black text-rose-950 uppercase tracking-widest">Anonymous</span>
-                </label>
-                <button 
-                  onClick={addPrayer}
-                  className="w-14 h-14 bg-rose-600 text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
-                >
-                  <Send size={24} />
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="lg:col-span-2 space-y-6 max-h-[800px] overflow-y-auto pr-4 custom-scrollbar">
-            {prayers.map(p => (
-              <div key={p.id} className="bg-white p-10 rounded-[3rem] border-4 border-white shadow-xl group hover:border-rose-50 transition-all">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest px-3 py-1 bg-rose-50 rounded-full">{p.userName}</span>
-                      <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{p.timestamp?.toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-rose-950 font-black italic text-xl leading-relaxed">"{p.content}"</p>
-                  </div>
-                  <button 
-                    onClick={() => likePrayer(p.id, p.amenCount)}
-                    className="flex flex-col items-center gap-1 text-rose-100 hover:text-rose-600 transition-all active:scale-95"
-                  >
-                    <Heart size={32} strokeWidth={3} className={p.amenCount > 0 ? "fill-rose-600 text-rose-600" : ""} />
-                    <span className="text-xs font-black text-rose-950">{p.amenCount}</span>
-                  </button>
-                </div>
-                <div className="pt-6 border-t border-rose-50">
-                  <CommentSection collectionName="prayers" id={p.id} comments={p.comments || []} activeUser={user} onAddComment={addComment} />
-                </div>
-              </div>
-            ))}
-            {prayers.length === 0 && (
-              <div className="text-center p-10 text-gray-400 font-bold">
-                No prayers yet. Be the first to lift up a request.
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* THE FRIENDSHIP BENCH */}
+      {/* COMMUNITY HUB - Tabbed Sections */}
       <section>
         <div className="flex items-center gap-6 mb-12">
-          <div className="bg-teal-100 p-4 rounded-3xl text-teal-600">
-            <Coffee size={32} strokeWidth={2.5} />
+          <div className="bg-gradient-to-r from-rose-600 to-purple-600 p-4 rounded-3xl text-white shadow-xl">
+            <Users size={32} />
           </div>
           <div>
-            <h2 className="text-4xl font-black text-teal-950 tracking-tight uppercase">The Friendship Bench</h2>
-            <p className="text-teal-500 font-black uppercase text-[10px] tracking-[0.3em] mt-1">Find your tribe: Prayer Partners, Church Mates, & Friends</p>
+            <h2 className="text-4xl font-black text-rose-950 tracking-tight">Community Hub</h2>
+            <p className="text-rose-400 font-black uppercase text-[10px] tracking-[0.3em] mt-1">Connect, Share & Grow Together</p>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-12">
-          {/* Post Form */}
-          <div className="lg:col-span-1 relative">
-             {!user && <PublicOverlay />}
-             <div className={`bg-teal-50 p-10 rounded-[3.5rem] border-4 border-teal-100 shadow-2xl h-fit ${!user ? 'opacity-20 pointer-events-none' : ''}`}>
-               <h3 className="text-xl font-black text-teal-950 uppercase tracking-tight mb-6">Post a Request</h3>
-               
-               <div className="mb-4">
-                 <label className="text-[10px] font-black text-teal-600 uppercase tracking-widest mb-2 block">I am looking for:</label>
-                 <select 
-                  value={friendshipCategory} 
-                  onChange={(e) => setFriendshipCategory(e.target.value as any)}
-                  className="w-full p-4 rounded-2xl bg-white border-2 border-teal-100 outline-none font-bold text-teal-900 text-sm focus:border-teal-300 transition-colors"
-                 >
-                   <option value="Prayer Partner">Prayer Partner</option>
-                   <option value="Same Church">Friends from My Church</option>
-                   <option value="Same City">Friends in My City</option>
-                 </select>
-               </div>
+        {/* Community Tabs Menu */}
+        <div className="flex gap-4 overflow-x-auto pb-8 mb-8 no-scrollbar">
+          {COMMUNITY_TABS.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setSelectedCommunityTab(tab)}
+              className={`px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest whitespace-nowrap transition-all border-2 ${
+                selectedCommunityTab === tab 
+                ? 'bg-gradient-to-r from-rose-600 to-purple-600 border-transparent text-white shadow-lg shadow-rose-200' 
+                : 'bg-white border-rose-100 text-rose-300 hover:border-rose-300 hover:text-rose-500'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
-               <textarea 
-                 value={newFriendshipContent}
-                 onChange={e => setNewFriendshipContent(e.target.value)}
-                 className="w-full p-6 rounded-[2rem] bg-white border-2 border-teal-100 focus:border-teal-300 outline-none min-h-[140px] font-bold text-teal-900 placeholder:text-teal-200/70"
-                 placeholder="Share a bit about who you are looking for..."
-               />
-               <div className="mt-6 flex justify-end">
-                 <button 
-                   onClick={addFriendshipPost}
-                   className="px-8 py-4 bg-teal-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-teal-100 hover:bg-teal-700 transition-all flex items-center gap-2"
-                 >
-                   Post to Bench <Send size={16} />
-                 </button>
-               </div>
-             </div>
-          </div>
-
-          {/* Post List */}
-          <div className="lg:col-span-2 grid md:grid-cols-2 gap-6">
-            {friendshipPosts.map(post => (
-              <div key={post.id} className="bg-white p-8 rounded-[3rem] border-4 border-teal-50 shadow-xl flex flex-col hover:-translate-y-1 transition-transform">
-                <div className="mb-4">
-                   <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${
-                     post.category === 'Prayer Partner' ? 'bg-purple-100 text-purple-700' :
-                     post.category === 'Same Church' ? 'bg-amber-100 text-amber-700' :
-                     'bg-green-100 text-green-700'
-                   }`}>
-                     {post.category}
-                   </span>
+        {/* Tab Content */}
+        <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+          {/* Prayer Board Tab */}
+          {selectedCommunityTab === 'Prayer Board' && (
+            <div>
+              <div className="flex items-center gap-4 mb-8">
+                <div className="bg-rose-100 p-3 rounded-2xl text-rose-600">
+                  <Hand size={24} strokeWidth={3} />
                 </div>
-                
-                <p className="text-gray-800 font-bold text-lg mb-6 flex-1">"{post.content}"</p>
-                
-                <div className="space-y-3 mb-6 p-4 bg-gray-50 rounded-3xl">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                     <Users size={14} className="text-teal-500" /> {post.userName}
+                <div>
+                  <h3 className="text-2xl font-black text-rose-950 tracking-tight">Community Prayer Board</h3>
+                  <p className="text-rose-400 font-black uppercase text-[9px] tracking-[0.3em] mt-1">Lifting each other in the Kingdom</p>
+                </div>
+              </div>
+
+              <div className="grid lg:grid-cols-3 gap-12">
+                <div className="lg:col-span-1 relative">
+                  {!user && <PublicOverlay />}
+                  <div className={`bg-white p-8 rounded-[3rem] border-4 border-rose-50 shadow-2xl h-fit ${!user ? 'opacity-20 pointer-events-none' : ''}`}>
+                    <h4 className="text-lg font-black text-rose-950 uppercase tracking-tight mb-6">Submit Request</h4>
+                    <textarea 
+                      value={newPrayer}
+                      onChange={e => setNewPrayer(e.target.value)}
+                      className="w-full p-5 rounded-[2rem] bg-rose-50/30 border-2 border-transparent focus:border-rose-100 outline-none min-h-[140px] font-bold text-rose-900 placeholder:text-rose-200"
+                      placeholder="What can the community pray for?"
+                    />
+                    <div className="flex items-center justify-between mt-6">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className={`w-7 h-7 rounded-xl border-2 transition-all flex items-center justify-center ${isAnon ? 'bg-rose-600 border-rose-600 text-white shadow-md' : 'bg-white border-rose-100'}`}>
+                          {isAnon && <CheckCircle2 size={12} strokeWidth={4} />}
+                        </div>
+                        <input type="checkbox" checked={isAnon} onChange={e => setIsAnon(e.target.checked)} className="hidden" />
+                        <span className="text-xs font-black text-rose-950 uppercase tracking-widest">Anonymous</span>
+                      </label>
+                      <button 
+                        onClick={addPrayer}
+                        className="w-12 h-12 bg-rose-600 text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
+                      >
+                        <Send size={20} />
+                      </button>
+                    </div>
                   </div>
-                  {post.userChurch && (
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                      <Church size={14} className="text-teal-500" /> {post.userChurch}
+                </div>
+
+                <div className="lg:col-span-2 space-y-6">
+                  {prayers.map((p) => (
+                    <div key={p.id} className="bg-white p-8 rounded-[2.5rem] border-4 border-white shadow-xl group hover:border-rose-50 transition-all">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest px-2 py-1 bg-rose-50 rounded-full">{p.userName}</span>
+                            <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{p.timestamp?.toLocaleDateString()}</span>
+                          </div>
+                          {p.isAnonymous && <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">🙏 Anonymous Request</span>}
+                        </div>
+                        <button onClick={() => likePrayer(p.id, p.amenCount)} className="group">
+                          <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 rounded-2xl group-hover:bg-rose-100 transition-colors">
+                            <Heart size={16} className="text-rose-600 group-hover:scale-110 transition-transform" />
+                            <span className="text-xs font-black text-rose-600">{p.amenCount}</span>
+                          </div>
+                        </button>
+                      </div>
+                      <p className="text-rose-900 font-bold text-lg leading-relaxed mb-4">"{p.content}"</p>
+                      <div className="mt-auto pt-4 border-t border-rose-50">
+                         <CommentSection collectionName="prayers" id={p.id} comments={p.comments || []} activeUser={user} onAddComment={addComment} />
+                      </div>
+                    </div>
+                  ))}
+                  {prayers.length === 0 && <div className="text-center text-gray-400 font-bold py-12">No prayer requests yet. Be the first to share!</div>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Friendship Bench Tab */}
+          {selectedCommunityTab === 'Friendship Bench' && (
+            <div>
+              <div className="flex items-center gap-4 mb-8">
+                <div className="bg-teal-100 p-3 rounded-2xl text-teal-600">
+                  <Coffee size={24} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-teal-950 tracking-tight">The Friendship Bench</h3>
+                  <p className="text-teal-400 font-black uppercase text-[9px] tracking-[0.3em] mt-1">Find Your Kingdom Companions</p>
+                </div>
+              </div>
+
+              <div className="grid lg:grid-cols-3 gap-12">
+                <div className="lg:col-span-1 relative">
+                  {!user && <PublicOverlay />}
+                  <div className={`bg-white p-8 rounded-[3rem] border-4 border-teal-50 shadow-2xl h-fit ${!user ? 'opacity-20 pointer-events-none' : ''}`}>
+                    <h4 className="text-lg font-black text-teal-950 uppercase tracking-tight mb-6">Post on Bench</h4>
+                    <div className="space-y-4">
+                      <select 
+                        value={friendshipCategory}
+                        onChange={e => setFriendshipCategory(e.target.value as any)}
+                        className="w-full px-5 py-3 rounded-xl bg-teal-50/30 border-2 border-transparent focus:border-teal-100 outline-none font-bold text-teal-900"
+                      >
+                        <option value="Prayer Partner">Prayer Partner</option>
+                        <option value="Same Church">Same Church</option>
+                        <option value="Same City">Same City</option>
+                      </select>
+                      <textarea 
+                        value={newFriendshipContent}
+                        onChange={e => setNewFriendshipContent(e.target.value)}
+                        className="w-full p-5 rounded-[2rem] bg-teal-50/30 border-2 border-transparent focus:border-teal-100 outline-none min-h-[120px] font-bold text-teal-900 placeholder:text-teal-200"
+                        placeholder="Share your heart and what you're looking for..."
+                      />
+                      <button 
+                        onClick={addFriendshipPost}
+                        className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black shadow-xl hover:bg-teal-700 transition-colors"
+                      >
+                        Post on Bench
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 space-y-6">
+                  {friendshipPosts.map((post) => (
+                    <div key={post.id} className="bg-white p-8 rounded-[2.5rem] border-4 border-white shadow-xl group hover:border-teal-50 transition-all">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black text-teal-600 uppercase tracking-widest px-2 py-1 bg-teal-50 rounded-full">{post.userName}</span>
+                            <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{post.timestamp?.toLocaleDateString()}</span>
+                          </div>
+                          <span className="text-[8px] font-black text-teal-600 uppercase tracking-widest bg-teal-50 px-2 py-1 rounded-full">{post.category}</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-800 font-bold text-lg mb-4">"{post.content}"</p>
+                      <div className="space-y-2 mb-4 p-4 bg-gray-50 rounded-2xl">
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                           <Users size={12} className="text-teal-500" /> {post.userName}
+                        </div>
+                        {post.userChurch && (
+                          <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                            <Church size={12} className="text-teal-500" /> {post.userChurch}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                          <MapPin size={12} className="text-teal-500" /> {post.userLocation}
+                        </div>
+                      </div>
+                      <div className="mt-auto pt-4 border-t border-teal-50">
+                         <CommentSection collectionName="friendship_posts" id={post.id} comments={post.comments || []} activeUser={user} onAddComment={addComment} />
+                      </div>
+                    </div>
+                  ))}
+                  {friendshipPosts.length === 0 && <div className="text-center text-gray-400 font-bold py-12">No posts on the Friendship Bench yet. Be the first to reach out!</div>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Kingdom Testimonies Tab */}
+          {selectedCommunityTab === 'Kingdom Testimonies' && (
+            <div>
+              <div className="flex items-center gap-4 mb-8">
+                <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
+                  <Star size={24} fill="currentColor" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-amber-950 tracking-tight">Kingdom Testimonies</h3>
+                  <p className="text-amber-400 font-black uppercase text-[9px] tracking-[0.3em] mt-1">God's Faithfulness in Action</p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {testimonies.map((t) => (
+                  <div key={t.id} className="bg-white rounded-[3rem] p-8 shadow-2xl border-4 border-amber-50 group hover:border-amber-100 transition-all">
+                    <div className="aspect-video mb-6 rounded-2xl overflow-hidden">
+                      <img src={t.image} alt={t.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-black text-amber-950 mb-4 tracking-tight">{t.title}</h3>
+                      <p className="text-amber-900 font-bold italic text-lg leading-relaxed mb-6 flex-1">"{t.content}"</p>
+                      <div className="flex items-center gap-3 text-amber-600 font-black text-xs uppercase tracking-widest bg-amber-50 w-fit px-4 py-2 rounded-2xl mb-6">
+                        <Users size={14} /> Verified Union
+                      </div>
+                      <div className="pt-6 border-t border-amber-50">
+                        <CommentSection collectionName="testimonies" id={t.id} comments={t.comments || []} activeUser={user} onAddComment={addComment} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {testimonies.length === 0 && (
+                  <div className="col-span-full p-12 bg-white rounded-[3rem] text-center text-gray-400 font-bold border-2 border-dashed border-amber-100">
+                    Testimonies loading... or none yet shared.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Lifestyle Connect Events Tab */}
+          {selectedCommunityTab === 'Lifestyle Connect Events' && (
+            <div>
+              <div className="flex items-center gap-4 mb-8">
+                <div className="bg-purple-600 p-3 rounded-2xl text-white shadow-xl">
+                  <Calendar size={24} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-purple-950 tracking-tight">Lifestyle Connect Events</h3>
+                  <p className="text-purple-400 font-black uppercase text-[9px] tracking-[0.3em] mt-1 italic">Community Gatherings & Meetups</p>
+                </div>
+              </div>
+
+              {/* Admin Event Form */}
+              {user?.isAdmin && (
+                <div className="mb-8">
+                  <button
+                    onClick={() => setShowEventForm(!showEventForm)}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition-colors flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    {showEventForm ? 'Cancel Event' : 'Add New Event'}
+                  </button>
+
+                  {showEventForm && (
+                    <div className="bg-white p-8 rounded-3xl shadow-2xl border-4 border-purple-50 mt-6">
+                      <h4 className="text-xl font-black text-purple-950 mb-6">Create New Event</h4>
+                      
+                      <div className="grid md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                          <label className="text-[9px] font-black text-purple-400 uppercase tracking-widest ml-3 mb-1 block">Event Name</label>
+                          <input
+                            type="text"
+                            value={newEvent.name}
+                            onChange={e => setNewEvent(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
+                            placeholder="Enter event name"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-[9px] font-black text-purple-400 uppercase tracking-widest ml-3 mb-1 block">Date</label>
+                          <input
+                            type="date"
+                            value={newEvent.date}
+                            onChange={e => setNewEvent(prev => ({ ...prev, date: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-[9px] font-black text-purple-400 uppercase tracking-widest ml-3 mb-1 block">Time</label>
+                          <input
+                            type="time"
+                            value={newEvent.time}
+                            onChange={e => setNewEvent(prev => ({ ...prev, time: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-[9px] font-black text-purple-400 uppercase tracking-widest ml-3 mb-1 block">Place</label>
+                          <input
+                            type="text"
+                            value={newEvent.place}
+                            onChange={e => setNewEvent(prev => ({ ...prev, place: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
+                            placeholder="Event location"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mb-6">
+                        <label className="text-[9px] font-black text-purple-400 uppercase tracking-widest ml-3 mb-1 block">Description</label>
+                        <textarea
+                          value={newEvent.description}
+                          onChange={e => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
+                          className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100 h-20 resize-none"
+                          placeholder="Describe the event..."
+                        />
+                      </div>
+
+                      <div className="mb-6">
+                        <label className="text-[9px] font-black text-purple-400 uppercase tracking-widest ml-3 mb-1 block">Event Photo</label>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleEventPhotoUpload}
+                            className="hidden"
+                            id="event-photo-upload-tab"
+                          />
+                          <label
+                            htmlFor="event-photo-upload-tab"
+                            className="px-6 py-3 bg-purple-100 text-purple-700 rounded-xl font-black text-sm hover:bg-purple-200 transition-colors flex items-center gap-2 cursor-pointer"
+                          >
+                            <Upload size={16} />
+                            {newEvent.photo ? 'Change Photo' : 'Upload Photo'}
+                          </label>
+                          {newEvent.photo && (
+                            <img src={newEvent.photo} alt="Event preview" className="w-14 h-14 rounded-xl object-cover" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4">
+                        <button
+                          onClick={addEvent}
+                          className="px-8 py-3 bg-purple-600 text-white rounded-xl font-black hover:bg-purple-700 transition-colors"
+                        >
+                          Create Event
+                        </button>
+                        <button
+                          onClick={() => setShowEventForm(false)}
+                          className="px-8 py-3 bg-gray-200 text-gray-700 rounded-xl font-black hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                      <MapPin size={14} className="text-teal-500" /> {post.userLocation}
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-teal-50">
-                   <CommentSection collectionName="friendship_posts" id={post.id} comments={post.comments || []} activeUser={user} onAddComment={addComment} />
-                </div>
-              </div>
-            ))}
-            {friendshipPosts.length === 0 && (
-              <div className="col-span-full p-8 text-center text-gray-400 font-bold bg-white rounded-[2rem] border-dashed border-2 border-teal-100">
-                The bench is empty. Be the first to sit and wait for a friend.
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section>
-        <div className="flex items-center gap-6 mb-12">
-          <div className="bg-amber-100 p-4 rounded-3xl text-amber-600">
-            <Star size={32} fill="currentColor" />
-          </div>
-          <h2 className="text-4xl font-black text-rose-950 tracking-tight uppercase">Kingdom Testimonies</h2>
-        </div>
-        <div className="grid md:grid-cols-2 gap-12">
-          {testimonies.map(t => (
-            <div key={t.id} className="bg-white rounded-[4rem] p-10 border-4 border-amber-50 shadow-2xl group transition-all flex flex-col">
-              <div className="aspect-video rounded-[2.5rem] overflow-hidden mb-8 shadow-xl">
-                 <img src={t.image} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-              </div>
-              <h3 className="text-2xl font-black text-rose-950 mb-4 tracking-tight">{t.title}</h3>
-              <p className="text-rose-900 font-bold italic text-lg leading-relaxed mb-6 flex-1">"{t.content}"</p>
-              <div className="flex items-center gap-3 text-rose-600 font-black text-xs uppercase tracking-widest bg-rose-50 w-fit px-6 py-3 rounded-2xl mb-8">
-                <Users size={16} /> Verified Union
-              </div>
-              <div className="pt-8 border-t border-amber-50">
-                <CommentSection collectionName="testimonies" id={t.id} comments={t.comments || []} activeUser={user} onAddComment={addComment} />
-              </div>
-            </div>
-          ))}
-          {testimonies.length === 0 && (
-              <div className="col-span-full p-12 bg-white rounded-[3rem] text-center text-gray-400 font-bold border-2 border-dashed border-amber-100">
-                Testimonies loading... or none yet shared.
-              </div>
-          )}
-        </div>
-      </section>
-
-      {/* LIFESTYLE CONNECT EVENTS */}
-      <section>
-        <div className="flex items-center gap-6 mb-12">
-          <div className="bg-purple-600 p-4 rounded-3xl text-white shadow-xl shadow-purple-100">
-            <Calendar size={32} />
-          </div>
-          <div>
-            <h2 className="text-4xl font-black text-purple-950 tracking-tight">Lifestyle Connect Events</h2>
-            <p className="text-purple-400 font-black uppercase text-[10px] tracking-[0.3em] mt-1 italic">Community Gatherings & Meetups</p>
-          </div>
-        </div>
-
-        {/* Admin Event Form */}
-        {user?.isAdmin && (
-          <div className="mb-8">
-            <button
-              onClick={() => setShowEventForm(!showEventForm)}
-              className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition-colors flex items-center gap-2"
-            >
-              <Plus size={16} />
-              {showEventForm ? 'Cancel Event' : 'Add New Event'}
-            </button>
-
-            {showEventForm && (
-              <div className="bg-white p-8 rounded-3xl shadow-2xl border-4 border-purple-50 mt-6">
-                <h3 className="text-2xl font-black text-purple-950 mb-6">Create New Event</h3>
-                
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Event Name</label>
-                    <input
-                      type="text"
-                      value={newEvent.name}
-                      onChange={e => setNewEvent(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
-                      placeholder="Enter event name"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Date</label>
-                    <input
-                      type="date"
-                      value={newEvent.date}
-                      onChange={e => setNewEvent(prev => ({ ...prev, date: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Time</label>
-                    <input
-                      type="time"
-                      value={newEvent.time}
-                      onChange={e => setNewEvent(prev => ({ ...prev, time: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Place</label>
-                    <input
-                      type="text"
-                      value={newEvent.place}
-                      onChange={e => setNewEvent(prev => ({ ...prev, place: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
-                      placeholder="Event location"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Description</label>
-                  <textarea
-                    value={newEvent.description}
-                    onChange={e => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100 h-24 resize-none"
-                    placeholder="Describe the event..."
-                  />
-                </div>
-
-                <div className="mb-6">
-                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Event Photo</label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleEventPhotoUpload}
-                      className="hidden"
-                      id="event-photo-upload"
-                    />
-                    <label
-                      htmlFor="event-photo-upload"
-                      className="px-6 py-3 bg-purple-100 text-purple-700 rounded-xl font-black text-sm hover:bg-purple-200 transition-colors flex items-center gap-2 cursor-pointer"
-                    >
-                      <Upload size={16} />
-                      {newEvent.photo ? 'Change Photo' : 'Upload Photo'}
-                    </label>
-                    {newEvent.photo && (
-                      <img src={newEvent.photo} alt="Event preview" className="w-16 h-16 rounded-xl object-cover" />
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <button
-                    onClick={addEvent}
-                    className="px-8 py-3 bg-purple-600 text-white rounded-xl font-black hover:bg-purple-700 transition-colors"
-                  >
-                    Create Event
-                  </button>
-                  <button
-                    onClick={() => setShowEventForm(false)}
-                    className="px-8 py-3 bg-gray-200 text-gray-700 rounded-xl font-black hover:bg-gray-300 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Events Display */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {events.map((event) => (
-            <div key={event.id} className="bg-white rounded-[3.5rem] p-6 shadow-2xl border-4 border-purple-50 overflow-hidden group hover:border-purple-200 transition-all">
-              {event.photo && (
-                <div className="aspect-video mb-4 rounded-2xl overflow-hidden">
-                  <img 
-                    src={event.photo} 
-                    alt={event.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
                 </div>
               )}
-              
-              <div className="space-y-3">
-                <h3 className="text-xl font-black text-purple-950 leading-tight">{event.name}</h3>
-                
-                <div className="flex items-center gap-3 text-sm font-bold text-purple-600">
-                  <Calendar size={14} />
-                  <span>{event.date}</span>
-                  <span>•</span>
-                  <span>{event.time}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 text-sm font-bold text-purple-600">
-                  <MapPin size={14} />
-                  <span>{event.place}</span>
-                </div>
-                
-                <p className="text-gray-700 font-bold text-sm leading-relaxed line-clamp-3">{event.description}</p>
-                
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
-                  <span>Posted {event.timestamp?.toLocaleDateString()}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {events.length === 0 && (
-          <div className="col-span-full p-12 bg-white rounded-[3rem] text-center text-gray-400 font-bold border-2 border-dashed border-purple-100">
-            <Calendar size={48} className="mx-auto text-purple-300 mb-4" />
-            No events scheduled yet. Check back soon!
-          </div>
-        )}
+              {/* Events Display */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {events.map((event) => (
+                  <div key={event.id} className="bg-white rounded-[3rem] p-6 shadow-2xl border-4 border-purple-50 overflow-hidden group hover:border-purple-200 transition-all">
+                    {event.photo && (
+                      <div className="aspect-video mb-4 rounded-2xl overflow-hidden">
+                        <img 
+                          src={event.photo} 
+                          alt={event.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <h4 className="text-lg font-black text-purple-950 leading-tight">{event.name}</h4>
+                      
+                      <div className="flex items-center gap-3 text-sm font-bold text-purple-600">
+                        <Calendar size={14} />
+                        <span>{event.date}</span>
+                        <span>•</span>
+                        <span>{event.time}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm font-bold text-purple-600">
+                        <MapPin size={14} />
+                        <span>{event.place}</span>
+                      </div>
+                      
+                      <p className="text-gray-700 font-bold text-sm leading-relaxed line-clamp-3">{event.description}</p>
+                      
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
+                        <span>Posted {event.timestamp?.toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {events.length === 0 && (
+                <div className="col-span-full p-12 bg-white rounded-[3rem] text-center text-gray-400 font-bold border-2 border-dashed border-purple-100">
+                  <Calendar size={48} className="mx-auto text-purple-300 mb-4" />
+                  No events scheduled yet. Check back soon!
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Wedding Vendors */}
