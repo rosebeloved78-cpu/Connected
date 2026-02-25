@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { Heart, Users, Gift as GiftIcon, MessageCircle, User as UserIcon, LogOut, Menu, X, Loader2, LayoutDashboard, Send } from 'lucide-react';
 import LandingPage from '../pages/Landing';
+import LoginPage from '../pages/Login';
+import SignupPage from '../pages/Signup';
 import Onboarding from '../pages/Onboarding';
 import FeedPage from '../pages/Feed';
 import DiasporaPage from '../pages/Diaspora';
@@ -124,6 +126,8 @@ const AppContent: React.FC = () => {
         <main className="flex-1 overflow-x-hidden relative">
           <Routes>
             <Route path="/" element={userProfile ? <Navigate to="/feed" replace /> : <LandingPage />} />
+            <Route path="/login" element={userProfile ? <Navigate to="/feed" replace /> : <LoginPage />} />
+            <Route path="/signup" element={userProfile ? <Navigate to="/feed" replace /> : <SignupPage />} />
             <Route path="/onboarding" element={userProfile ? <Navigate to="/feed" replace /> : <Onboarding />} />
             <Route path="/feed" element={userProfile ? <FeedPage user={userProfile} onUpdateUser={() => {}} /> : <Navigate to="/" replace />} />
             <Route path="/messages" element={userProfile ? <MessagesPage user={userProfile} /> : <Navigate to="/" replace />} />
@@ -137,7 +141,7 @@ const AppContent: React.FC = () => {
 
         <footer className={`py-12 ${userProfile ? 'bg-white border-t border-rose-50' : 'bg-rose-50/20 text-rose-900/40'}`}>
           <div className="max-w-6xl mx-auto px-4 text-center">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em]">© 2026 Lifestyle Connect • Ministry Focused</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em]"> 2026 Lifestyle Connect • Ministry Focused</p>
           </div>
         </footer>
       </div>

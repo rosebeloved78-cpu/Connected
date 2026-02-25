@@ -189,7 +189,7 @@ const LandingPage: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row items-center gap-10 justify-center w-full max-w-5xl mx-auto mb-24">
           <Link
-            to="/onboarding"
+            to="/login"
             className="group w-full sm:w-auto px-16 py-9 bg-rose-600 text-white rounded-[3.5rem] font-black text-3xl hover:bg-rose-700 transition-all shadow-[0_30px_70px_-15px_rgba(225,29,72,0.5)] hover:scale-105 active:scale-95 flex items-center justify-center gap-5"
           >
             Seek & Find <ArrowRight size={40} className="group-hover:translate-x-3 transition-transform" />
