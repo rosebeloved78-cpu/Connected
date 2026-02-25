@@ -34,9 +34,7 @@ const OnboardingPage: React.FC = () => {
     servesInChurch: null as boolean | null,
     department: '',
     vowAccepted: false,
-    tier: 'free' as Tier,
-    email: '',
-    password: ''
+    tier: 'free' as Tier
   });
 
   useEffect(() => {
@@ -44,18 +42,17 @@ const OnboardingPage: React.FC = () => {
         setGoogleUser(auth.currentUser);
         setFormData(prev => ({
             ...prev,
-            name: auth.currentUser?.displayName || prev.name,
-            email: auth.currentUser?.email || prev.email
+            name: auth.currentUser?.displayName || prev.name
         }));
     }
   }, []);
 
-  const TOTAL_STEPS = 11; 
+  const TOTAL_STEPS = 10; 
   const isDiasporaUser = formData.locationType === 'Diaspora';
 
   const handleNext = () => {
-    if (step === 5 && formData.attendsChurch === false) { setStep(9); return; }
-    if (step === 7 && formData.servesInChurch === false) { setStep(9); return; }
+    if (step === 5 && formData.attendsChurch === false) { setStep(8); return; }
+    if (step === 7 && formData.servesInChurch === false) { setStep(8); return; }
     if (step < TOTAL_STEPS) setStep(step + 1);
   };
 
@@ -110,13 +107,9 @@ const OnboardingPage: React.FC = () => {
       let user = auth.currentUser;
 
       if (!user) {
-        const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-        user = userCredential.user;
-        try {
-          await sendEmailVerification(user);
-        } catch (vErr) {
-          console.warn("Could not send verification email", vErr);
-        }
+        setError("No authenticated user found. Please sign up first.");
+        setLoading(false);
+        return;
       }
 
       const newUserProfile = createProfileData(user!.uid);
@@ -146,11 +139,7 @@ const OnboardingPage: React.FC = () => {
     if (step === 6 && !formData.churchName) return true;
     if (step === 7 && formData.servesInChurch === null) return true;
     if (step === 8 && !formData.department) return true;
-    if (step === 9 && !formData.vowAccepted) return true;
-    if (step === 11) {
-      if (googleUser) return false;
-      return !formData.email || formData.password.length < 6;
-    }
+    if (step === 10 && !formData.vowAccepted) return true;
     return false;
   };
 
@@ -166,9 +155,8 @@ const OnboardingPage: React.FC = () => {
             {step === 3 && "Vocation & Education"}
             {step === 4 && "Spiritual Discernment"}
             {(step >= 5 && step <= 8) && "Church Life"}
-            {step === 9 && "Covenant Vow"}
-            {step === 10 && "Select Your Tier"}
-            {step === 11 && "Secure Profile"}
+            {step === 9 && "Select Your Tier"}
+            {step === 10 && "Covenant Vow"}
           </h2>
           <div className="flex gap-2 mt-6">
             {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
@@ -374,30 +362,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           )}
 
-          {step === 11 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-10 duration-500">
-              {googleUser ? (
-                <div className="bg-green-50 p-8 rounded-3xl border-2 border-green-200 text-center">
-                    <CheckCircle className="mx-auto text-green-600 mb-4" size={48} />
-                    <p className="font-black text-green-900 mb-2">Authenticated as {googleUser.displayName}</p>
-                    <p className="text-sm font-bold text-green-700">{googleUser.email}</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Email</label>
-                        <input type="email" required value={formData.email} onChange={e => updateForm('email', e.target.value)} className="w-full px-8 py-6 rounded-[2rem] bg-rose-50/50 outline-none font-bold text-rose-950 border-2 border-transparent focus:border-rose-200" placeholder="you@example.com" />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest ml-4">Password</label>
-                        <input type="password" required minLength={6} value={formData.password} onChange={e => updateForm('password', e.target.value)} className="w-full px-8 py-6 rounded-[2rem] bg-rose-50/50 outline-none font-bold text-rose-950 border-2 border-transparent focus:border-rose-200" placeholder="••••••••" />
-                    </div>
-                </div>
-              )}
-              {error && <div className="p-4 bg-red-50 text-red-600 rounded-2xl flex items-center gap-2 font-bold text-xs"><AlertCircle size={14} /> {error}</div>}
-            </div>
-          )}
-
+          
           <div className="pt-10 flex flex-col gap-4">
             {step < TOTAL_STEPS ? (
               <button type="button" disabled={isNextDisabled()} onClick={handleNext} className={`w-full py-8 text-white rounded-[2.5rem] font-black text-2xl shadow-xl transition-all flex items-center justify-center gap-4 group ${isDiasporaUser ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-100' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-100'} disabled:opacity-30`}>
