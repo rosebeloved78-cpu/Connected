@@ -7,9 +7,11 @@ import { auth, db } from '../firebase';
 import { User, Tier, SpiritualMaturity } from '../types';
 import { Logo, ZIM_CITIES } from '../constants';
 import { ArrowRight, Check, Church, Heart, ShieldCheck, Briefcase, MapPin, Globe, Star, Zap, Lock, Loader2, Mail, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshProfile } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -114,6 +116,9 @@ const OnboardingPage: React.FC = () => {
 
       const newUserProfile = createProfileData(user!.uid);
       await setDoc(doc(db, "users", user!.uid), newUserProfile);
+      
+      // Refresh the profile in AuthContext so it detects the new profile
+      await refreshProfile();
       
       navigate('/feed');
     } catch (err: any) {
