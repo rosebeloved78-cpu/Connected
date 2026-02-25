@@ -56,9 +56,13 @@ const LandingPage: React.FC = () => {
     } catch (err: any) {
         console.error("Google Login Error:", err);
         if (err.code === 'auth/unauthorized-domain') {
-            setError("Domain not authorized in Firebase. Please add this domain in the Firebase Console > Authentication > Settings.");
+            setError("Domain not authorized. Please add this domain in Firebase Console > Authentication > Settings > Authorized Domains.");
         } else if (err.code === 'auth/popup-closed-by-user') {
-            setError("Sign in cancelled.");
+            setError("Sign in cancelled by user.");
+        } else if (err.code === 'auth/popup-blocked') {
+            setError("Sign in popup blocked. Please allow popups for this site.");
+        } else if (err.code === 'auth/operation-not-allowed') {
+            setError("Google Sign-In is not enabled. Enable it in Firebase Console > Authentication > Sign-in method.");
         } else {
             setError("Failed to sign in with Google. " + (err.message || ""));
         }
