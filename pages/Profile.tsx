@@ -50,13 +50,15 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64Image = reader.result as string;
+      const userRef = doc(db, 'users', user.id);
+      
       try {
-        const userRef = doc(db, 'users', user.id);
-        
         // Automated AI Biometric Check
-        // If API key is missing, this will fail and fall back to manual review
-        const apiKey = process.env.API_KEY;
-        if (!apiKey) throw new Error("API Key missing");
+        const apiKey = import.meta.env.VITE_GOOGLE_GENAI_KEY;
+        if (!apiKey) {
+          console.warn("API Key missing, skipping AI verification");
+          throw new Error("API Key missing");
+        }
 
         const ai = new GoogleGenAI({ apiKey });
         const prompt = `You are a biometric security expert. Compare these two images:

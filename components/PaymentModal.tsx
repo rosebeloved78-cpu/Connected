@@ -30,8 +30,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
       setStep('select');
       setMethod(null);
       setLoading(false);
-      setPhoneNumber('');
-      setCardNumber('');
       fetchConfig();
     }
   }, [isOpen]);
