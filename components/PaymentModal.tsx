@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, CreditCard, Smartphone, CheckCircle, Loader2, Lock, ShieldCheck, DollarSign, AlertCircle, ExternalLink, ArrowRight } from 'lucide-react';
+import { X, CheckCircle, Loader2, Lock, ShieldCheck, ExternalLink, ArrowRight } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -13,7 +13,7 @@ interface PaymentModalProps {
   onSuccess: () => void;
 }
 
-type PaymentMethod = 'stripe' | 'paypal' | 'ecocash' | null;
+type PaymentMethod = 'paynow' | 'paypal' | null;
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, title, description, onSuccess }) => {
   const [method, setMethod] = useState<PaymentMethod>(null);
@@ -23,10 +23,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
   const [step, setStep] = useState<'select' | 'process' | 'verify' | 'success'>('select');
   
   // Input states
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
+  // Removed card/mobile inputs; we use hosted payment links for PayNow and PayPal.
 
   useEffect(() => {
     if (isOpen) {
@@ -68,7 +65,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
   const handlePayment = async () => {
     setLoading(true);
 
-    const externalUrl = method === 'ecocash' ? config?.ecocashUrl : (method === 'stripe' ? config?.stripeUrl : config?.paypalUrl);
+    const externalUrl = method === 'paynow' ? config?.paynowUrl : config?.paypalUrl;
     
     // IF we have an external URL and we are just starting (step === 'process')
     // We REDIRECT and PAUSE. We do NOT simulate success yet.
@@ -106,31 +103,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
       ) : (
         <>
           <button 
-            onClick={() => { setMethod('ecocash'); setStep('process'); }}
-            className="w-full p-5 rounded-3xl border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center justify-between group"
+            onClick={() => { setMethod('paynow'); setStep('process'); }}
+            className="w-full p-5 rounded-3xl border-2 border-gray-100 hover:border-blue-600 hover:bg-blue-50 transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-100"><Smartphone size={28} /></div>
+              <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-100 font-black">PN</div>
               <div className="text-left">
-                <h4 className="font-black text-blue-900 text-lg">EcoCash</h4>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mobile Money (Zim)</p>
+                <h4 className="font-black text-blue-900 text-lg">PayNow Zimbabwe</h4>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cards • Mobile Money • Bank</p>
               </div>
             </div>
-            {config?.ecocashUrl ? <ArrowRight size={18} className="text-blue-200" /> : <div className="px-2 py-1 bg-gray-100 rounded text-[8px] font-black text-gray-400 uppercase tracking-widest">Demo</div>}
-          </button>
-
-          <button 
-            onClick={() => { setMethod('stripe'); setStep('process'); }}
-            className="w-full p-5 rounded-3xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100"><CreditCard size={28} /></div>
-              <div className="text-left">
-                <h4 className="font-black text-gray-900 text-lg">Stripe</h4>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Intl Cards</p>
-              </div>
-            </div>
-            {config?.stripeUrl ? <ArrowRight size={18} className="text-indigo-200" /> : <div className="px-2 py-1 bg-gray-100 rounded text-[8px] font-black text-gray-400 uppercase tracking-widest">Demo</div>}
+            {config?.paynowUrl ? <ArrowRight size={18} className="text-blue-200" /> : <div className="px-2 py-1 bg-gray-100 rounded text-[8px] font-black text-gray-400 uppercase tracking-widest">Demo</div>}
           </button>
 
           <button 
@@ -155,19 +138,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
   );
 
   const renderProcess = () => {
-    const isUrlMode = (method === 'ecocash' && !!config?.ecocashUrl) || (method === 'stripe' && !!config?.stripeUrl) || (method === 'paypal' && !!config?.paypalUrl);
+    const isUrlMode = (method === 'paynow' && !!config?.paynowUrl) || (method === 'paypal' && !!config?.paypalUrl);
 
     return (
       <div className="space-y-6">
-        <div className={`p-8 rounded-[2.5rem] text-center border-2 ${method === 'ecocash' ? 'bg-blue-50 border-blue-100' : method === 'stripe' ? 'bg-indigo-50 border-indigo-100' : 'bg-yellow-50 border-yellow-100'}`}>
+        <div className={`p-8 rounded-[2.5rem] text-center border-2 ${method === 'paynow' ? 'bg-blue-50 border-blue-100' : 'bg-yellow-50 border-yellow-100'}`}>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Order Total</p>
-          <p className={`text-5xl font-black tracking-tighter ${method === 'ecocash' ? 'text-blue-900' : method === 'stripe' ? 'text-indigo-900' : 'text-gray-900'}`}>${amount.toFixed(2)}</p>
+          <p className={`text-5xl font-black tracking-tighter ${method === 'paynow' ? 'text-blue-900' : 'text-gray-900'}`}>${amount.toFixed(2)}</p>
         </div>
 
         {isUrlMode ? (
           <div className="text-center space-y-4 px-4">
             <p className="text-sm font-bold text-gray-500 leading-relaxed">
-              We are using a secure {method === 'ecocash' ? 'EcoCash' : method === 'stripe' ? 'Stripe' : 'PayPal'} gateway. 
+              We are using a secure {method === 'paynow' ? 'PayNow' : 'PayPal'} gateway. 
               Clicking below will open the payment portal in a new tab.
             </p>
             <div className="p-4 bg-green-50 rounded-2xl border border-green-100 flex items-center gap-3">
@@ -178,26 +161,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
         ) : (
           <div className="space-y-4">
             <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest text-center">Development Demo Mode</p>
-            {method === 'ecocash' ? (
-              <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="077..." className="w-full p-5 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-blue-500 outline-none font-black text-gray-900 text-lg" />
-            ) : method === 'stripe' ? (
-              <div className="space-y-4">
-                <input type="text" value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="Card Number" className="w-full p-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-gray-900" />
-                <div className="grid grid-cols-2 gap-4">
-                  <input type="text" value={expiry} onChange={e => setExpiry(e.target.value)} placeholder="MM/YY" className="w-full p-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-gray-900" />
-                  <input type="text" value={cvc} onChange={e => setCvc(e.target.value)} placeholder="CVC" className="w-full p-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-gray-900" />
-                </div>
-              </div>
+            {method === 'paynow' ? (
+              <p className="text-sm font-bold text-gray-400 text-center">No PayNow link configured. Using demo handshake.</p>
             ) : (
-              <p className="text-sm font-bold text-gray-400 text-center">No link configured. Using PayPal Demo Handshake.</p>
+              <p className="text-sm font-bold text-gray-400 text-center">No PayPal link configured. Using demo handshake.</p>
             )}
           </div>
         )}
 
         <button 
           onClick={handlePayment} 
-          disabled={loading || (!isUrlMode && method === 'ecocash' && !phoneNumber) || (!isUrlMode && method === 'stripe' && !cardNumber)} 
-          className={`w-full py-6 text-white rounded-[2rem] font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${method === 'ecocash' ? 'bg-blue-600 hover:bg-blue-700' : method === 'stripe' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-[#FFC439] text-[#003087]'}`}
+          disabled={loading} 
+          className={`w-full py-6 text-white rounded-[2rem] font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${method === 'paynow' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#FFC439] text-[#003087]'}`}
         >
           {loading ? <Loader2 className="animate-spin" /> : (isUrlMode ? <><ExternalLink size={24} /> Pay Now</> : 'Verify & Upgrade')}
         </button>
@@ -251,7 +226,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, amount, ti
         </div>
         {step !== 'success' && (
           <div className="bg-gray-50/50 px-10 py-6 border-t border-gray-100 flex items-center justify-center gap-2 text-[10px] font-black text-gray-300 uppercase tracking-widest">
-            <Lock size={12} /> Securely Managed by {method === 'stripe' ? 'Stripe' : 'ZimSwitch'}
+            <Lock size={12} /> Securely Managed by {method === 'paynow' ? 'PayNow' : 'PayPal'}
           </div>
         )}
       </div>

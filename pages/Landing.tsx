@@ -125,19 +125,19 @@ const LandingPage: React.FC = () => {
   };
 
   const collageImages = [
-    // Curated high-quality images of African-American / African couples
-    "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1523292562811-8fa7962a78c8?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1608630712773-455562762a4b?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1522673607200-1648832cee33?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1546961329-78bef0414d7c?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1516589174184-c68526572af0?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1583939411023-1478317ad1a8?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1534008775685-2c938d613149?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1628891566324-42f2b7d41071?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1606105953063-448f7000d664?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1551509653-6b7f3844b266?auto=format&fit=crop&w=600&q=80", 
-    "https://images.unsplash.com/photo-1567215132561-26792694b423?auto=format&fit=crop&w=600&q=80",
+    // Curated high-quality images of African-American / African couples & Weddings
+    "https://images.unsplash.com/photo-1626027582521-1335019d5e75?auto=format&fit=crop&w=600&q=80", // Tope A Asokere - Nigerian Traditional
+    "https://images.unsplash.com/photo-1620067667873-195c967f08d3?auto=format&fit=crop&w=600&q=80", // Alekon - Couple
+    "https://images.unsplash.com/photo-1610996887550-9d8c3621458e?auto=format&fit=crop&w=600&q=80", // Chidy Young - Wedding
+    "https://images.unsplash.com/photo-1596728362696-620242220d9f?auto=format&fit=crop&w=600&q=80", // Juan Pablo - Ceremony
+    "https://images.unsplash.com/photo-1612450796332-9b51778c772b?auto=format&fit=crop&w=600&q=80", // Gabriel Tovar - Elegant
+    "https://images.unsplash.com/photo-1644917904128-0648939c36d0?auto=format&fit=crop&w=600&q=80", // 550Park - BW Wedding
+    "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=600&q=80", // Portrait
+    "https://images.unsplash.com/photo-1625409390209-66c5a538260b?auto=format&fit=crop&w=600&q=80", // Wine/Celebration
+    "https://picsum.photos/seed/africanwedding/600/800",
+    "https://picsum.photos/seed/lobola/600/800",
+    "https://picsum.photos/seed/traditionalmarriage/600/800",
+    "https://picsum.photos/seed/blacklove/600/800",
   ];
 
   return (
@@ -146,7 +146,7 @@ const LandingPage: React.FC = () => {
       <div className="absolute inset-0 z-0 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 opacity-90 scale-105 pointer-events-none">
         {collageImages.concat(collageImages).map((src, i) => (
           <div key={i} className="relative aspect-[3/4] overflow-hidden rounded-[2rem] shadow-xl">
-            <img src={src} className="w-full h-full object-cover" alt="" />
+            <img src={src} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover" alt="" />
           </div>
         ))}
       </div>
@@ -195,7 +195,7 @@ const LandingPage: React.FC = () => {
             <div className="flex -space-x-4">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="w-14 h-14 rounded-full border-4 border-white bg-rose-100 overflow-hidden">
-                  <img src={`https://i.pravatar.cc/100?u=${i + 22}`} alt="" />
+                  <img src={`https://i.pravatar.cc/100?u=${i + 22}`} crossOrigin="anonymous" referrerPolicy="no-referrer" alt="" />
                 </div>
               ))}
             </div>

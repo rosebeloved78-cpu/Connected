@@ -89,7 +89,7 @@ const DiasporaPage: React.FC<{ user: User }> = ({ user }) => {
           
           <div className="p-12 space-y-12">
             <div className="flex items-center gap-8 p-10 bg-blue-50/50 rounded-[3.5rem] border-2 border-blue-50">
-              <img src={selectedForVetting.images?.[0]} className="w-32 h-32 rounded-[2.5rem] object-cover shadow-2xl border-4 border-white" alt={selectedForVetting.name} />
+               <img src={selectedForVetting.images?.[0]} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-32 h-32 rounded-[2.5rem] object-cover shadow-2xl border-4 border-white" alt={selectedForVetting.name} />
               <div> 
                 <h3 className="text-4xl font-black text-gray-900 tracking-tight">{selectedForVetting.name}</h3> 
                 <p className="text-blue-600 font-black flex items-center gap-2 uppercase text-xs mt-2"><MapPin size={16} fill="currentColor" /> Based in {selectedForVetting.city}, Zimbabwe</p> 
@@ -193,7 +193,7 @@ const DiasporaPage: React.FC<{ user: User }> = ({ user }) => {
           ) : dbProfiles.map(profile => (
               <div key={profile.id} className="bg-white rounded-[3.5rem] overflow-hidden border-4 border-gray-50 shadow-2xl hover:border-blue-100 transition-all group flex flex-col h-full">
                   <div className="relative aspect-[3/4] overflow-hidden">
-                      <img src={profile.images?.[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={profile.name} />
+                       <img src={profile.images?.[0]} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={profile.name} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
                       <div className="absolute bottom-0 inset-x-0 p-10"> 
                         <p className="text-blue-400 text-[10px] font-black uppercase flex items-center gap-2 mb-2"><MapPin size={12} fill="currentColor" /> {profile.city}, Zimbabwe</p> 

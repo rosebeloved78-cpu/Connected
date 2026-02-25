@@ -1,7 +1,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, initializeFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
 // TODO: Replace the following with your app's Firebase project configuration
 // You can get this from the Firebase Console > Project Settings > General > Your Apps
@@ -18,9 +18,10 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // Initialize Firestore with settings to avoid timeout errors in restricted network environments
-// experimentalForceLongPolling ensures connection stability when WebSockets are unavailable
-// ignoreUndefinedProperties allows saving objects with undefined fields (Firestore will ignore them instead of throwing)
+// Using persistentLocalCache to enable offline support and multi-tab synchronization
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  }),
   ignoreUndefinedProperties: true,
 });

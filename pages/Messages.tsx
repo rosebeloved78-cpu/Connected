@@ -65,7 +65,7 @@ const MessagesPage: React.FC<{ user: User }> = ({ user }) => {
               const otherId = getOtherParticipantId(chat);
               return (
                 <button key={chat.id} onClick={() => setActiveChat(chat)} className={`w-full p-4 rounded-3xl flex items-center gap-4 transition-all ${activeChat?.id === chat.id ? 'bg-rose-50 border-2 border-rose-100' : 'hover:bg-gray-50'}`}>
-                  <img src={chat.participantImages[otherId]} className="w-14 h-14 rounded-2xl object-cover bg-gray-200" />
+                  <img src={chat.participantImages[otherId]} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-14 h-14 rounded-2xl object-cover bg-gray-200" />
                   <div className="text-left"><h4 className="font-black text-gray-900">{chat.participantNames[otherId]}</h4><p className="text-xs font-bold text-gray-500 truncate max-w-[150px]">{chat.lastMessage}</p></div>
                 </button>
               );
@@ -80,7 +80,7 @@ const MessagesPage: React.FC<{ user: User }> = ({ user }) => {
               <div className="flex items-center gap-4">
                 <button onClick={() => setActiveChat(null)} className="md:hidden text-gray-400"><ArrowLeft /></button>
                 <div className="flex items-center gap-3">
-                  <img src={activeChat.participantImages[getOtherParticipantId(activeChat)]} className="w-10 h-10 rounded-xl object-cover" />
+                  <img src={activeChat.participantImages[getOtherParticipantId(activeChat)]} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-10 h-10 rounded-xl object-cover" />
                   <h3 className="font-black text-gray-900 leading-tight">{activeChat.participantNames[getOtherParticipantId(activeChat)]}</h3>
                 </div>
               </div>

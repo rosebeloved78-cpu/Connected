@@ -72,7 +72,7 @@ const GiftPage: React.FC<{ user: User }> = ({ user }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
         {loading ? <div className="flex justify-center p-20 col-span-full"><Loader2 className="animate-spin text-rose-600" size={48} /></div> : gifts.map(gift => (
             <div key={gift.id} className="bg-white rounded-[3.5rem] overflow-hidden border-4 border-rose-50 shadow-2xl transition-transform hover:-translate-y-2">
-                <div className="relative aspect-[4/3]"><img src={gift.image} className="w-full h-full object-cover" alt={gift.name} /><div className="absolute top-6 right-6 bg-white/95 backdrop-blur-md px-6 py-2 rounded-full font-black text-2xl text-rose-950 shadow-xl border-2 border-rose-50">${gift.price}</div></div>
+                 <div className="relative aspect-[4/3]"><img src={gift.image} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover" alt={gift.name} /><div className="absolute top-6 right-6 bg-white/95 backdrop-blur-md px-6 py-2 rounded-full font-black text-2xl text-rose-950 shadow-xl border-2 border-rose-50">${gift.price}</div></div>
                 <div className="p-10 space-y-4">
                     <h3 className="text-2xl font-black text-rose-950 tracking-tight">{gift.name}</h3>
                     <p className="text-rose-500 font-black text-xs uppercase tracking-widest bg-rose-50 w-fit px-4 py-1.5 rounded-full">{gift.provider}</p>

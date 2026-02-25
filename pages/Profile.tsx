@@ -54,7 +54,11 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
         const userRef = doc(db, 'users', user.id);
         
         // Automated AI Biometric Check
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+        // If API key is missing, this will fail and fall back to manual review
+        const apiKey = process.env.API_KEY;
+        if (!apiKey) throw new Error("API Key missing");
+
+        const ai = new GoogleGenAI({ apiKey });
         const prompt = `You are a biometric security expert. Compare these two images:
         Image 1: The user's primary profile picture.
         Image 2: The user's verification selfie.
@@ -89,7 +93,7 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
         if (assessment.match && assessment.confidence > 0.9) {
           await updateDoc(userRef, {
             verificationStatus: 'verified',
-            verificationImage: null
+            verificationImage: null // Clear image if verified automatically
           });
           alert("Hallelujah! Our AI Smart-Scan has verified your identity instantly. You are now a verified member!");
         } else {
@@ -102,12 +106,15 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
         
         await refreshProfile();
       } catch (err) {
-        console.error("AI Verification failed, falling back to manual:", err);
+        console.error("AI Verification failed or skipped, falling back to manual review:", err);
         const userRef = doc(db, 'users', user.id);
+        
+        // Fallback to manual review (pending)
         await updateDoc(userRef, {
           verificationImage: base64Image,
           verificationStatus: 'pending'
         });
+        
         await refreshProfile();
         alert("Verification selfie submitted! An administrator will review your profile shortly.");
       } finally {
@@ -270,6 +277,8 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
               <div className="w-48 h-48 rounded-[3.5rem] overflow-hidden border-8 border-white shadow-2xl bg-gray-100">
                 <img 
                   src={formData.images[0] || 'https://i.pravatar.cc/300'} 
+                  crossOrigin="anonymous" 
+                  referrerPolicy="no-referrer"
                   className="w-full h-full object-cover transition-transform group-hover:scale-105" 
                   alt="Profile"
                 />
@@ -504,7 +513,7 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
                     <div className="grid grid-cols-3 gap-4 mb-8">
                       {formData.images.map((img, idx) => (
                         <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden group border-2 border-white shadow-sm">
-                          <img src={img} className="w-full h-full object-cover" />
+                          <img src={img} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                           {idx !== 0 && (
                             <button 
                               onClick={() => removeGalleryImage(idx)}

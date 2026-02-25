@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Vendor, Gift as GiftType } from '../types';
-import { collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc, Timestamp, query, where, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { VENDOR_CATEGORIES } from '../constants';
 import { ShieldCheck, CreditCard, Users, Mic, Plus, Trash2, Save, Store, Smartphone, DollarSign, LayoutDashboard, Loader2, Upload, MapPin, Phone, Mail, Image as ImageIcon, Video, Youtube, Gift as GiftIcon, Link as LinkIcon, AlertCircle, FileText, Radio, CheckCircle } from 'lucide-react';
@@ -11,12 +11,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
 
   // -- Payment State --
   const [paymentSettings, setPaymentSettings] = useState({
-    ecocashCode: '',
-    ecocashName: '',
-    ecocashUrl: '',
-    stripeKey: '',
-    stripeUrl: '',
-    paypalClientId: '',
+    paynowUrl: '',
     paypalUrl: ''
   });
 
@@ -51,12 +46,24 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   const [videoUrl, setVideoUrl] = useState('');
   const [liveTitle, setLiveTitle] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
+  const [verificationUsers, setVerificationUsers] = useState<User[]>([]);
 
   useEffect(() => {
     fetchVendors();
     fetchGifts();
     fetchPaymentSettings();
+    fetchVerificationUsers();
   }, []);
+
+  const fetchVerificationUsers = async () => {
+    try {
+      const q = query(collection(db, 'users'), where('verificationStatus', '==', 'pending'));
+      const snap = await getDocs(q);
+      setVerificationUsers(snap.docs.map(d => ({ id: d.id, ...d.data() } as User)));
+    } catch (e) {
+      console.error("Error fetching verifications:", e);
+    }
+  };
 
   const fetchPaymentSettings = async () => {
     try {
@@ -67,6 +74,34 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
       }
     } catch (e) {
       console.error("Error fetching payment settings:", e);
+    }
+  };
+
+  const handleVerifyUser = async (userId: string, status: 'verified' | 'unverified') => {
+    if (!window.confirm(`Are you sure you want to ${status === 'verified' ? 'approve' : 'reject'} this user's verification?`)) return;
+    
+    setLoading(true);
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        verificationStatus: status,
+        verificationImage: status === 'verified' ? null : undefined // Keep image if rejected? Or delete? Let's keep it null if verified.
+      });
+      
+      // If rejected, maybe we should clear the image so they can upload again? 
+      // Or keep it for record? The requirement says "reviewed by admin".
+      // If we set it to 'unverified', the UI in Profile.tsx allows them to upload again.
+      if (status === 'unverified') {
+         await updateDoc(userRef, { verificationImage: null });
+      }
+
+      alert(`User verification ${status === 'verified' ? 'approved' : 'rejected'}.`);
+      fetchVerificationUsers();
+    } catch (e) {
+      console.error("Error updating verification:", e);
+      alert("Failed to update verification status.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -238,6 +273,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
       <div className="grid lg:grid-cols-4 gap-8">
         <div className="space-y-3">
             {[
+              { id: 'verification', label: 'Approvals', icon: ShieldCheck, color: 'bg-amber-500' },
               { id: 'payments', label: 'Payments', icon: CreditCard, color: 'bg-blue-600' },
               { id: 'vendors', label: 'Vendors', icon: Store, color: 'bg-rose-600' },
               { id: 'gifts', label: 'Gifts', icon: GiftIcon, color: 'bg-pink-600' },
@@ -254,6 +290,77 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
         </div>
 
         <div className="lg:col-span-3">
+            {activeTab === 'verification' && (
+                <div className="space-y-8 animate-in slide-in-from-right-10">
+                    <div className="bg-white p-10 rounded-[4rem] shadow-2xl border-4 border-white">
+                        <h2 className="text-3xl font-black mb-8 flex items-center gap-3 text-amber-500"><ShieldCheck /> Pending Verifications</h2>
+                        
+                        {verificationUsers.length === 0 ? (
+                            <div className="text-center py-20 bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200">
+                                <ShieldCheck size={48} className="mx-auto text-gray-300 mb-4" />
+                                <p className="text-gray-400 font-bold">No pending verification requests.</p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-6">
+                                {verificationUsers.map(vUser => (
+                                    <div key={vUser.id} className="p-8 bg-amber-50 rounded-[3rem] border-2 border-amber-100 flex flex-col md:flex-row gap-8 items-center">
+                                        <div className="flex-1 space-y-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden border-2 border-white shadow-md">
+                                                     <img src={vUser.images[0]} crossOrigin="anonymous" referrerPolicy="no-referrer" alt={vUser.name} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-black text-amber-900">{vUser.name}</h3>
+                                                    <p className="text-xs font-bold text-amber-600 uppercase tracking-widest">{vUser.location}</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-white/50 rounded-2xl text-xs text-amber-800 font-medium">
+                                                User ID: {vUser.id}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-8">
+                                            <div className="text-center">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-2">Profile Photo</p>
+                                                <div className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-gray-100">
+                                                     <img src={vUser.images[0]} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                                </div>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-2">Selfie Verification</p>
+                                                <div className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-gray-100 relative group cursor-pointer" onClick={() => window.open(vUser.verificationImage || '', '_blank')}>
+                                                     <img src={vUser.verificationImage || ''} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                                                        <ImageIcon className="text-white opacity-0 group-hover:opacity-100" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-3">
+                                            <button 
+                                                onClick={() => handleVerifyUser(vUser.id, 'verified')}
+                                                disabled={loading}
+                                                className="px-6 py-3 bg-green-500 text-white rounded-xl font-black shadow-lg hover:bg-green-600 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <CheckCircle size={18} /> Approve
+                                            </button>
+                                            <button 
+                                                onClick={() => handleVerifyUser(vUser.id, 'unverified')}
+                                                disabled={loading}
+                                                className="px-6 py-3 bg-red-500 text-white rounded-xl font-black shadow-lg hover:bg-red-600 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Trash2 size={18} /> Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {activeTab === 'payments' && (
                 <div className="bg-white p-10 rounded-[4rem] shadow-2xl border-4 border-white animate-in slide-in-from-right-10">
                     <div className="flex items-center justify-between mb-8">
@@ -261,23 +368,24 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
                     </div>
                     
                     <div className="space-y-10">
-                        {/* EcoCash Section */}
+                        {/* PayNow Section */}
                         <div className="p-8 bg-blue-50/50 rounded-[3rem] border-2 border-blue-100">
-                            <h3 className="text-xl font-black text-blue-900 flex items-center gap-2 mb-6"><Smartphone size={24} /> EcoCash Zimbabwe</h3>
-                            <div className="grid md:grid-cols-2 gap-6 mb-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4">Merchant Name</label>
-                                    <input value={paymentSettings.ecocashName} onChange={e => setPaymentSettings({...paymentSettings, ecocashName: e.target.value})} placeholder="e.g. Lifestyle Connect Zim" className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold outline-none" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4">USSD Shortcode</label>
-                                    <input value={paymentSettings.ecocashCode} onChange={e => setPaymentSettings({...paymentSettings, ecocashCode: e.target.value})} placeholder="e.g. *151*2*..." className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold outline-none" />
-                                </div>
-                            </div>
+                            <h3 className="text-xl font-black text-blue-900 flex items-center gap-2 mb-6">PayNow Zimbabwe</h3>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4">Payment Link</label>
-                                <input value={paymentSettings.ecocashUrl} onChange={e => setPaymentSettings({...paymentSettings, ecocashUrl: e.target.value})} className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold font-mono text-sm outline-none" placeholder="https://..." />
+                                <label className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-4">PayNow Payment Link</label>
+                                <input value={paymentSettings.paynowUrl} onChange={e => setPaymentSettings({...paymentSettings, paynowUrl: e.target.value})} className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-blue-400 font-bold font-mono text-sm outline-none" placeholder="https://paynow.co.zw/Payment/Link/..." />
                             </div>
+                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest ml-4 mt-2">Paste your PayNow Express Link</p>
+                        </div>
+
+                        {/* PayPal Section */}
+                        <div className="p-8 bg-yellow-50/50 rounded-[3rem] border-2 border-yellow-100">
+                            <h3 className="text-xl font-black text-yellow-900 flex items-center gap-2 mb-6">PayPal</h3>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-yellow-500 ml-4">PayPal Payment Link</label>
+                                <input value={paymentSettings.paypalUrl} onChange={e => setPaymentSettings({...paymentSettings, paypalUrl: e.target.value})} className="w-full p-4 rounded-2xl bg-white border-2 border-transparent focus:border-yellow-400 font-bold font-mono text-sm outline-none" placeholder="https://www.paypal.com/checkoutnow?..." />
+                            </div>
+                            <p className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest ml-4 mt-2">Paste your hosted PayPal checkout link</p>
                         </div>
 
                         <div className="flex justify-end pt-4">
@@ -353,7 +461,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
                             <div key={v.id} className="p-6 rounded-3xl bg-gray-50 border-2 border-gray-100 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className="w-16 h-16 rounded-2xl bg-gray-200 overflow-hidden">
-                                        <img src={v.images[0] || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" />
+                                        <img src={v.images[0] || 'https://via.placeholder.com/150'} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                                     </div>
                                     <div>
                                         <h4 className="font-black text-rose-950">{v.name}</h4>
@@ -420,7 +528,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
                         {gifts.map(g => (
                             <div key={g.id} className="p-6 rounded-3xl bg-gray-50 border-2 border-gray-100 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <img src={g.image} className="w-16 h-16 rounded-2xl object-cover" />
+                                    <img src={g.image} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-16 h-16 rounded-2xl object-cover" />
                                     <div>
                                         <h4 className="font-black text-pink-950">{g.name}</h4>
                                         <p className="text-xs font-bold text-gray-500">${g.price} • {g.provider}</p>

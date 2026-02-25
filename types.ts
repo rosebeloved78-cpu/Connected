@@ -28,6 +28,7 @@ export interface User {
   interests?: string[];
   spiritualMaturity?: SpiritualMaturity;
   verificationStatus: 'unverified' | 'pending' | 'verified';
+  verificationImage?: string;
   maritalStatus?: 'Never Married' | 'Divorced';
   hasChildren?: boolean;
   numberOfChildren?: number;

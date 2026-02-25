@@ -500,7 +500,7 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
           {testimonies.map(t => (
             <div key={t.id} className="bg-white rounded-[4rem] p-10 border-4 border-amber-50 shadow-2xl group transition-all flex flex-col">
               <div className="aspect-video rounded-[2.5rem] overflow-hidden mb-8 shadow-xl">
-                <img src={t.image} className="w-full h-full object-cover" />
+                 <img src={t.image} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
               </div>
               <h3 className="text-2xl font-black text-rose-950 mb-4 tracking-tight">{t.title}</h3>
               <p className="text-rose-900 font-bold italic text-lg leading-relaxed mb-6 flex-1">"{t.content}"</p>
@@ -553,7 +553,7 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
           {filteredVendors.map(v => (
             <div key={v.id} className="group cursor-pointer bg-white rounded-[2.5rem] border-4 border-white shadow-xl hover:border-blue-50 transition-all overflow-hidden flex flex-col">
               <div className="relative aspect-square overflow-hidden bg-gray-100">
-                <img src={v.images?.[0] || 'https://via.placeholder.com/300'} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" />
+                 <img src={v.images?.[0] || 'https://via.placeholder.com/300'} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" />
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-blue-900 shadow-lg">
                     {v.images?.length || 1} Photos
                 </div>

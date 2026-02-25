@@ -69,7 +69,7 @@ export const VENDORS: any[] = [
     phone: '+263 77 123 4567',
     email: 'bookings@goldenconifer.co.zw',
     priceRange: '$1500 - $3000',
-    images: ['https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=400&q=80']
+    images: ['https://picsum.photos/seed/venue1/600/800']
   },
   { 
     id: 'v2', 
@@ -80,14 +80,14 @@ export const VENDORS: any[] = [
     phone: '+263 71 987 6543',
     email: 'info@zuvadesigns.com',
     priceRange: '$300 - $800',
-    images: ['https://images.unsplash.com/photo-1594553323242-c1947d6c4f1c?auto=format&fit=crop&w=400&q=80'] 
+    images: ['https://picsum.photos/seed/dress1/600/800'] 
   },
 ];
 
 export const GIFTS: any[] = [
-  { id: 'g1', name: 'Luxury Rose Bouquet', price: 45, provider: 'Blooms Zim', image: 'https://images.unsplash.com/photo-1562690868-60bbe7293e94?auto=format&fit=crop&w=400&q=80' },
-  { id: 'g2', name: 'Assorted Chocolate Box', price: 25, provider: 'Sweet Treats', image: 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?auto=format&fit=crop&w=400&q=80' },
-  { id: 'g3', name: 'Custom Couple Mug', price: 15, provider: 'Print Shop', image: 'https://images.unsplash.com/photo-1517256011271-bf3f22b8214d?auto=format&fit=crop&w=400&q=80' },
+  { id: 'g1', name: 'Luxury Rose Bouquet', price: 45, provider: 'Blooms Zim', image: 'https://picsum.photos/seed/flowers/600/800' },
+  { id: 'g2', name: 'Assorted Chocolate Box', price: 25, provider: 'Sweet Treats', image: 'https://picsum.photos/seed/chocolate/600/800' },
+  { id: 'g3', name: 'Custom Couple Mug', price: 15, provider: 'Print Shop', image: 'https://picsum.photos/seed/mug/600/800' },
 ];
 
 export const INTEREST_OPTIONS = [

@@ -293,7 +293,7 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
           {loadingUsers ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-rose-600" size={40} /></div> : filteredMatches.map(match => (
               <div key={match.id} className="bg-white rounded-[3.5rem] p-5 shadow-2xl border-4 border-white hover:border-rose-50 transition-all overflow-hidden group">
                 <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-6">
-                  <img src={match.images?.[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={match.name} />
+                  <img src={match.images?.[0]} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={match.name} />
                   <div className="absolute bottom-0 inset-x-0 p-10 bg-gradient-to-t from-black/90 to-transparent text-white">
                     <h3 className="text-3xl font-black mb-2 tracking-tight">{match.name}, {match.age}</h3>
                     <div className="flex items-center gap-2 text-sm font-bold text-rose-300"> 

@@ -81,10 +81,10 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({ isOpen, onClose, partne
 
       {/* Remote Video (Simulated for Demo) */}
       <div className="relative flex-1 bg-gray-800 flex items-center justify-center">
-         <img src={partnerImage} className="absolute inset-0 w-full h-full object-cover opacity-50 blur-sm" alt="" />
+         <img src={partnerImage} crossOrigin="anonymous" referrerPolicy="no-referrer" className="absolute inset-0 w-full h-full object-cover opacity-50 blur-sm" alt="" />
          <div className="relative z-10 flex flex-col items-center animate-pulse">
             <div className="w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden mb-4">
-                <img src={partnerImage} className="w-full h-full object-cover" alt="" />
+                <img src={partnerImage} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover" alt="" />
             </div>
             <p className="text-white font-black text-xl tracking-widest uppercase">Connecting...</p>
          </div>
