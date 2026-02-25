@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, PrayerPost, Testimony, FriendshipPost, Comment, Vendor, VideoPost } from '../types';
+import { User, PrayerPost, Testimony, FriendshipPost, Comment, Vendor, VideoPost, Event } from '../types';
 import { Link } from 'react-router-dom';
-import { MessageCircle, Heart, Star, Users, Camera, MapPin, Hand, Send, Mic, Play, Music, ShieldCheck, Stars, Sparkles, MessageSquare, Lock, CheckCircle2, Coffee, Armchair, Church, DollarSign, Video, Radio, ExternalLink } from 'lucide-react';
+import { MessageCircle, Heart, Star, Users, Camera, MapPin, Hand, Send, Mic, Play, Music, ShieldCheck, Stars, Sparkles, MessageSquare, Lock, CheckCircle2, Coffee, Armchair, Church, DollarSign, Video, Radio, ExternalLink, Calendar, Plus, Upload } from 'lucide-react';
 import { VENDORS as STATIC_VENDORS, VENDOR_CATEGORIES } from '../constants';
 import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, updateDoc, arrayUnion, doc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -16,6 +16,7 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [videos, setVideos] = useState<VideoPost[]>([]);
   const [lives, setLives] = useState<any[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   
   // -- UI State --
   const [selectedVendorCategory, setSelectedVendorCategory] = useState(VENDOR_CATEGORIES[0]);
@@ -27,6 +28,17 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
   // Friendship
   const [newFriendshipContent, setNewFriendshipContent] = useState('');
   const [friendshipCategory, setFriendshipCategory] = useState<'Prayer Partner' | 'Same Church' | 'Same City'>('Prayer Partner');
+  
+  // Events Input State (Admin Only)
+  const [newEvent, setNewEvent] = useState({
+    name: '',
+    date: '',
+    time: '',
+    place: '',
+    description: '',
+    photo: ''
+  });
+  const [showEventForm, setShowEventForm] = useState(false);
   
   // -- Realtime Listeners --
   useEffect(() => {
@@ -46,6 +58,12 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
     const qVideos = query(collection(db, "admin_videos"), orderBy("timestamp", "desc"));
     const unsubVideos = onSnapshot(qVideos, (snapshot) => {
       setVideos(snapshot.docs.map(d => ({ id: d.id, ...d.data(), timestamp: d.data().timestamp?.toDate() } as VideoPost)));
+    });
+
+    // 4. Events Listener
+    const qEvents = query(collection(db, "events"), orderBy("timestamp", "desc"));
+    const unsubEvents = onSnapshot(qEvents, (snapshot) => {
+      setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data(), timestamp: d.data().timestamp?.toDate() } as Event)));
     });
 
     // 4. Admin Live Sessions Listener
@@ -86,6 +104,7 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
       unsubPrayers();
       unsubAdmin();
       unsubVideos();
+      unsubEvents();
       unsubLive();
       unsubFriends();
       unsubTestimonies();
@@ -159,6 +178,52 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
       setNewFriendshipContent('');
     } catch (e) {
       console.error("Error posting to bench:", e);
+    }
+  };
+
+  // Event Functions (Admin Only)
+  const handleEventPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && user?.isAdmin) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewEvent(prev => ({ ...prev, photo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addEvent = async () => {
+    if (!user?.isAdmin) return;
+    if (!newEvent.name.trim() || !newEvent.date.trim() || !newEvent.time.trim() || !newEvent.place.trim() || !newEvent.description.trim()) {
+      alert("Please fill in all event fields");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "events"), {
+        name: newEvent.name,
+        date: newEvent.date,
+        time: newEvent.time,
+        place: newEvent.place,
+        description: newEvent.description,
+        photo: newEvent.photo,
+        timestamp: Timestamp.now()
+      });
+
+      // Reset form
+      setNewEvent({
+        name: '',
+        date: '',
+        time: '',
+        place: '',
+        description: '',
+        photo: ''
+      });
+      setShowEventForm(false);
+    } catch (e) {
+      console.error("Error adding event:", e);
+      alert("Failed to add event. Please try again.");
     }
   };
 
@@ -518,6 +583,176 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
               </div>
           )}
         </div>
+      </section>
+
+      {/* LIFESTYLE CONNECT EVENTS */}
+      <section>
+        <div className="flex items-center gap-6 mb-12">
+          <div className="bg-purple-600 p-4 rounded-3xl text-white shadow-xl shadow-purple-100">
+            <Calendar size={32} />
+          </div>
+          <div>
+            <h2 className="text-4xl font-black text-purple-950 tracking-tight">Lifestyle Connect Events</h2>
+            <p className="text-purple-400 font-black uppercase text-[10px] tracking-[0.3em] mt-1 italic">Community Gatherings & Meetups</p>
+          </div>
+        </div>
+
+        {/* Admin Event Form */}
+        {user?.isAdmin && (
+          <div className="mb-8">
+            <button
+              onClick={() => setShowEventForm(!showEventForm)}
+              className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              <Plus size={16} />
+              {showEventForm ? 'Cancel Event' : 'Add New Event'}
+            </button>
+
+            {showEventForm && (
+              <div className="bg-white p-8 rounded-3xl shadow-2xl border-4 border-purple-50 mt-6">
+                <h3 className="text-2xl font-black text-purple-950 mb-6">Create New Event</h3>
+                
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Event Name</label>
+                    <input
+                      type="text"
+                      value={newEvent.name}
+                      onChange={e => setNewEvent(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
+                      placeholder="Enter event name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Date</label>
+                    <input
+                      type="date"
+                      value={newEvent.date}
+                      onChange={e => setNewEvent(prev => ({ ...prev, date: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Time</label>
+                    <input
+                      type="time"
+                      value={newEvent.time}
+                      onChange={e => setNewEvent(prev => ({ ...prev, time: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Place</label>
+                    <input
+                      type="text"
+                      value={newEvent.place}
+                      onChange={e => setNewEvent(prev => ({ ...prev, place: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100"
+                      placeholder="Event location"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Description</label>
+                  <textarea
+                    value={newEvent.description}
+                    onChange={e => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl bg-purple-50/50 outline-none font-bold text-purple-950 border-2 border-transparent focus:border-purple-100 h-24 resize-none"
+                    placeholder="Describe the event..."
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest ml-4 mb-1 block">Event Photo</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEventPhotoUpload}
+                      className="hidden"
+                      id="event-photo-upload"
+                    />
+                    <label
+                      htmlFor="event-photo-upload"
+                      className="px-6 py-3 bg-purple-100 text-purple-700 rounded-xl font-black text-sm hover:bg-purple-200 transition-colors flex items-center gap-2 cursor-pointer"
+                    >
+                      <Upload size={16} />
+                      {newEvent.photo ? 'Change Photo' : 'Upload Photo'}
+                    </label>
+                    {newEvent.photo && (
+                      <img src={newEvent.photo} alt="Event preview" className="w-16 h-16 rounded-xl object-cover" />
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={addEvent}
+                    className="px-8 py-3 bg-purple-600 text-white rounded-xl font-black hover:bg-purple-700 transition-colors"
+                  >
+                    Create Event
+                  </button>
+                  <button
+                    onClick={() => setShowEventForm(false)}
+                    className="px-8 py-3 bg-gray-200 text-gray-700 rounded-xl font-black hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Events Display */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {events.map((event) => (
+            <div key={event.id} className="bg-white rounded-[3.5rem] p-6 shadow-2xl border-4 border-purple-50 overflow-hidden group hover:border-purple-200 transition-all">
+              {event.photo && (
+                <div className="aspect-video mb-4 rounded-2xl overflow-hidden">
+                  <img 
+                    src={event.photo} 
+                    alt={event.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              )}
+              
+              <div className="space-y-3">
+                <h3 className="text-xl font-black text-purple-950 leading-tight">{event.name}</h3>
+                
+                <div className="flex items-center gap-3 text-sm font-bold text-purple-600">
+                  <Calendar size={14} />
+                  <span>{event.date}</span>
+                  <span>•</span>
+                  <span>{event.time}</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm font-bold text-purple-600">
+                  <MapPin size={14} />
+                  <span>{event.place}</span>
+                </div>
+                
+                <p className="text-gray-700 font-bold text-sm leading-relaxed line-clamp-3">{event.description}</p>
+                
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
+                  <span>Posted {event.timestamp?.toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {events.length === 0 && (
+          <div className="col-span-full p-12 bg-white rounded-[3rem] text-center text-gray-400 font-bold border-2 border-dashed border-purple-100">
+            <Calendar size={48} className="mx-auto text-purple-300 mb-4" />
+            No events scheduled yet. Check back soon!
+          </div>
+        )}
       </section>
 
       {/* Wedding Vendors */}

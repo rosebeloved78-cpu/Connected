@@ -123,4 +123,15 @@ export interface ChatSession {
   unreadCount?: number;
 }
 
+export interface Event {
+  id: string;
+  name: string;
+  date: string;
+  time: string;
+  place: string;
+  description: string;
+  photo: string;
+  timestamp: Date;
+}
+
 export interface PrayerPost extends PrayerRequest {}
