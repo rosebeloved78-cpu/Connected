@@ -403,7 +403,10 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
         </div>
 
         {/* Community Tabs Menu */}
-        <div className="flex gap-4 overflow-x-auto pb-8 mb-6 no-scrollbar">
+        <div className="text-center mb-4 md:hidden">
+          <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Swipe Across For More</span>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-8 mb-8 no-scrollbar">
           {COMMUNITY_TABS.map(tab => (
             <button
               key={tab}
@@ -419,45 +422,11 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
           ))}
         </div>
 
-        {/* Swipe Indicator for Mobile */}
-        <div className="flex items-center justify-center gap-2 mb-8 md:hidden">
-          <div className="flex items-center gap-1">
-            {COMMUNITY_TABS.map((tab, index) => (
-              <div
-                key={tab}
-                className={`h-2 w-2 rounded-full transition-all ${
-                  selectedCommunityTab === tab 
-                    ? 'bg-gradient-to-r from-rose-600 to-purple-600 w-6' 
-                    : 'bg-gray-300'
-                }`}
-              />
-            ))}
-          </div>
-          <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Swipe Across For More</span>
-        </div>
-
         {/* Tab Content */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-500">
           {/* Prayer Board Tab */}
           {selectedCommunityTab === 'Prayer Board' && (
             <div>
-              {/* Mobile Swipe Indicator */}
-              <div className="flex items-center justify-center gap-2 mb-6 md:hidden">
-                <div className="flex items-center gap-1">
-                  {COMMUNITY_TABS.map((tab, index) => (
-                    <div
-                      key={tab}
-                      className={`h-1.5 w-1.5 rounded-full transition-all ${
-                        selectedCommunityTab === tab 
-                          ? 'bg-gradient-to-r from-rose-600 to-purple-600 w-4' 
-                          : 'bg-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Swipe Across For More</span>
-              </div>
-
               <div className="flex items-center gap-4 mb-8">
                 <div className="bg-rose-100 p-3 rounded-2xl text-rose-600">
                   <Hand size={24} strokeWidth={3} />
@@ -530,23 +499,6 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
           {/* Friendship Bench Tab */}
           {selectedCommunityTab === 'Friendship Bench' && (
             <div>
-              {/* Mobile Swipe Indicator */}
-              <div className="flex items-center justify-center gap-2 mb-6 md:hidden">
-                <div className="flex items-center gap-1">
-                  {COMMUNITY_TABS.map((tab, index) => (
-                    <div
-                      key={tab}
-                      className={`h-1.5 w-1.5 rounded-full transition-all ${
-                        selectedCommunityTab === tab 
-                          ? 'bg-gradient-to-r from-rose-600 to-purple-600 w-4' 
-                          : 'bg-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Swipe Across For More</span>
-              </div>
-
               <div className="flex items-center gap-4 mb-8">
                 <div className="bg-teal-100 p-3 rounded-2xl text-teal-600">
                   <Coffee size={24} strokeWidth={2.5} />
@@ -628,23 +580,6 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
           {/* Kingdom Testimonies Tab */}
           {selectedCommunityTab === 'Kingdom Testimonies' && (
             <div>
-              {/* Mobile Swipe Indicator */}
-              <div className="flex items-center justify-center gap-2 mb-6 md:hidden">
-                <div className="flex items-center gap-1">
-                  {COMMUNITY_TABS.map((tab, index) => (
-                    <div
-                      key={tab}
-                      className={`h-1.5 w-1.5 rounded-full transition-all ${
-                        selectedCommunityTab === tab 
-                          ? 'bg-gradient-to-r from-rose-600 to-purple-600 w-4' 
-                          : 'bg-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Swipe Across For More</span>
-              </div>
-
               <div className="flex items-center gap-4 mb-8">
                 <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
                   <Star size={24} fill="currentColor" />
@@ -685,23 +620,6 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
           {/* Lifestyle Connect Events Tab */}
           {selectedCommunityTab === 'Lifestyle Connect Events' && (
             <div>
-              {/* Mobile Swipe Indicator */}
-              <div className="flex items-center justify-center gap-2 mb-6 md:hidden">
-                <div className="flex items-center gap-1">
-                  {COMMUNITY_TABS.map((tab, index) => (
-                    <div
-                      key={tab}
-                      className={`h-1.5 w-1.5 rounded-full transition-all ${
-                        selectedCommunityTab === tab 
-                          ? 'bg-gradient-to-r from-rose-600 to-purple-600 w-4' 
-                          : 'bg-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Swipe Across For More</span>
-              </div>
-
               <div className="flex items-center gap-4 mb-8">
                 <div className="bg-purple-600 p-3 rounded-2xl text-white shadow-xl">
                   <Calendar size={24} />
@@ -886,6 +804,9 @@ const CommunityPage: React.FC<{ user: User | null }> = ({ user }) => {
         </div>
 
         {/* Category Menu */}
+        <div className="text-center mb-4 md:hidden">
+          <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Swipe Across For More</span>
+        </div>
         <div className="flex gap-4 overflow-x-auto pb-8 mb-4 no-scrollbar">
             {VENDOR_CATEGORIES.map(cat => (
                 <button
