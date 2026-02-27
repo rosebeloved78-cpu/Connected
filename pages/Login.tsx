@@ -68,9 +68,14 @@ const LoginPage: React.FC = () => {
     setError('');
     
     try {
+      console.log("Starting Google authentication...");
       const provider = new GoogleAuthProvider();
+      console.log("Provider created:", provider);
+      
       const result = await signInWithPopup(auth, provider);
+      console.log("Google auth result:", result);
       const user = result.user;
+      console.log("Authenticated user:", user);
       
       // Check if profile exists
       const docRef = doc(db, 'users', user.uid);
@@ -78,10 +83,12 @@ const LoginPage: React.FC = () => {
       
       if (!docSnap.exists()) {
         // User authenticated but has no profile. Redirect to Onboarding to finish signup.
+        console.log("No profile found, redirecting to onboarding");
         navigate('/onboarding');
         return;
       }
       // If profile exists, App context will handle redirect to feed
+      console.log("Profile exists, AuthContext will handle redirect");
     } catch (err: any) {
       console.error("Google Auth Error:", err);
       if (err.code === 'auth/unauthorized-domain') {
@@ -93,7 +100,7 @@ const LoginPage: React.FC = () => {
       } else if (err.code === 'auth/operation-not-allowed') {
         setError("Google Sign-In is not enabled. Enable it in Firebase Console > Authentication > Sign-in method.");
       } else {
-        setError("Failed to sign in with Google. " + (err.message || ""));
+        setError("Failed to sign in with Google. Please try again.");
       }
       setLoading(false);
     }
