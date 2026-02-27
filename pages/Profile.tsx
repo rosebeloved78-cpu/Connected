@@ -1,11 +1,12 @@
 
 import React, { useState, useRef } from 'react';
 import { User, Tier, SpiritualMaturity } from '../types';
-import { User as UserIcon, ShieldCheck, Heart, Baby, Church, Briefcase, MapPin, CheckCircle, Plus, Check, X, UserCheck, Camera, Image as ImageIcon, Trash2, Loader2, EyeOff, Eye, Ban, AlertTriangle, Zap, Star, Gift as GiftIcon, Video, Globe, Truck, Sparkles, ShieldAlert } from 'lucide-react';
+import { User as UserIcon, ShieldCheck, Heart, Baby, Church, Briefcase, MapPin, CheckCircle, Plus, Check, X, UserCheck, Camera, Image as ImageIcon, Trash2, Loader2, EyeOff, Eye, Ban, AlertTriangle, Zap, Star, Gift as GiftIcon, Video, Globe, Truck, Sparkles, ShieldAlert, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+import { updateEmail, reauthenticateWithCredential, EmailAuthProvider, sendEmailVerification } from 'firebase/auth';
 import PaymentModal from '../components/PaymentModal';
 import { GoogleGenAI } from "@google/genai";
 
@@ -15,6 +16,13 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const { refreshProfile, logout } = useAuth();
+  
+  // Email editing states
+  const [newEmail, setNewEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [showEmailEdit, setShowEmailEdit] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [emailSuccess, setEmailSuccess] = useState('');
   
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [pendingUpgrade, setPendingUpgrade] = useState<{ tier: Tier, amount: number, title: string, desc: string } | null>(null);
@@ -37,6 +45,91 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
     } catch (error) {
       console.error("Error saving profile:", error);
       alert("Failed to save changes.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEmailUpdate = async () => {
+    setEmailError('');
+    setEmailSuccess('');
+    
+    if (!newEmail || !emailPassword) {
+      setEmailError('Please enter both new email and password');
+      return;
+    }
+    
+    if (!auth.currentUser) {
+      setEmailError('No authenticated user found');
+      return;
+    }
+    
+    // Check if user signed up with Google (no password)
+    if (!auth.currentUser.providerData.some(provider => provider.providerId === 'password')) {
+      setEmailError('Email editing is only available for users who signed up with email and password');
+      return;
+    }
+    
+    setSaving(true);
+    
+    try {
+      // Reauthenticate user
+      const credential = EmailAuthProvider.credential(
+        auth.currentUser.email!,
+        emailPassword
+      );
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      
+      // Update email
+      await updateEmail(auth.currentUser, newEmail);
+      
+      // Update email in Firestore
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, { 
+        email: newEmail,
+        emailVerified: false 
+      });
+      
+      // Send verification email
+      await sendEmailVerification(auth.currentUser);
+      
+      // Update local state
+      setFormData(prev => ({ ...prev, email: newEmail, emailVerified: false }));
+      
+      setEmailSuccess('Email updated successfully! Please check your new email for verification.');
+      setShowEmailEdit(false);
+      setNewEmail('');
+      setEmailPassword('');
+      
+      // Refresh profile to get updated data
+      await refreshProfile();
+      
+    } catch (error: any) {
+      console.error("Error updating email:", error);
+      if (error.code === 'auth/wrong-password') {
+        setEmailError('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/email-already-in-use') {
+        setEmailError('This email is already in use by another account.');
+      } else if (error.code === 'auth/invalid-email') {
+        setEmailError('Invalid email format.');
+      } else {
+        setEmailError('Failed to update email. Please try again.');
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!auth.currentUser) return;
+    
+    setSaving(true);
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setEmailSuccess('Verification email sent! Please check your inbox.');
+    } catch (error) {
+      console.error("Error sending verification:", error);
+      setEmailError('Failed to send verification email.');
     } finally {
       setSaving(false);
     }
@@ -385,6 +478,72 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
                         </div>
                       </div>
                     )}
+                  </section>
+
+                  {/* Email Account Section */}
+                  <section className={`p-10 rounded-[3.5rem] border-4 shadow-xl transition-all ${
+                    user.emailVerified ? 'bg-green-50 border-green-100' : 'bg-amber-50 border-amber-100'
+                  }`}>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className={`text-xl font-black uppercase tracking-tight flex items-center gap-3 ${
+                        user.emailVerified ? 'text-green-900' : 'text-amber-900'
+                      }`}>
+                        <Mail className={user.emailVerified ? 'text-green-600' : 'text-amber-600'} />
+                        Email Account
+                      </h3>
+                      <span className={`text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full ${
+                        user.emailVerified ? 'bg-green-600 text-white' : 'bg-amber-500 text-white'
+                      }`}>
+                        {user.emailVerified ? 'Verified' : 'Not Verified'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-gray-800 leading-relaxed">
+                            Current Email: <span className="text-gray-600">{user.email}</span>
+                          </p>
+                          {!user.emailVerified && (
+                            <p className="text-xs font-bold text-amber-700 mt-1">
+                              Please verify your email to ensure account security
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* Show edit button only for password users */}
+                        {auth.currentUser?.providerData.some(provider => provider.providerId === 'password') && (
+                          <button
+                            onClick={() => setShowEmailEdit(true)}
+                            className="px-4 py-2 bg-white text-amber-600 rounded-xl font-black text-xs uppercase tracking-widest border-2 border-amber-200 hover:bg-amber-50 transition-colors"
+                          >
+                            Edit Email
+                          </button>
+                        )}
+                      </div>
+
+                      {!user.emailVerified && (
+                        <button
+                          onClick={handleResendVerification}
+                          disabled={saving}
+                          className="w-full py-3 bg-white text-amber-600 rounded-2xl font-black shadow-sm hover:bg-amber-50 transition-colors flex items-center justify-center gap-2 border-2 border-amber-200"
+                        >
+                          {saving ? <Loader2 className="animate-spin" size={16} /> : <><Mail size={16} /> Resend Verification Email</>}
+                        </button>
+                      )}
+
+                      {emailError && (
+                        <div className="p-3 bg-red-50 rounded-xl border-2 border-red-100">
+                          <p className="text-xs font-bold text-red-700">{emailError}</p>
+                        </div>
+                      )}
+
+                      {emailSuccess && (
+                        <div className="p-3 bg-green-50 rounded-xl border-2 border-green-100">
+                          <p className="text-xs font-bold text-green-700">{emailSuccess}</p>
+                        </div>
+                      )}
+                    </div>
                   </section>
 
                   <section className="bg-rose-50 p-10 rounded-[3.5rem] border-4 border-white shadow-xl">
@@ -742,6 +901,99 @@ const ProfilePage: React.FC<{ user: User; onUpdate: (user: User) => void }> = ({
           </div>
         </div>
       </div>
+      
+      {/* Email Edit Modal */}
+      {showEmailEdit && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-[3rem] p-8 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-black text-rose-950">Update Email</h3>
+              <button
+                onClick={() => {
+                  setShowEmailEdit(false);
+                  setEmailError('');
+                  setEmailSuccess('');
+                  setNewEmail('');
+                  setEmailPassword('');
+                }}
+                className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">
+                  New Email Address
+                </label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Enter new email"
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border-2 border-transparent focus:border-rose-100 outline-none font-bold text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  value={emailPassword}
+                  onChange={(e) => setEmailPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border-2 border-transparent focus:border-rose-100 outline-none font-bold text-gray-900"
+                />
+              </div>
+
+              <div className="p-4 bg-amber-50 rounded-xl border-2 border-amber-100">
+                <div className="flex items-start gap-3">
+                  <Lock size={16} className="text-amber-600 mt-1" />
+                  <div>
+                    <p className="text-xs font-bold text-amber-800 mb-1">
+                      Security Notice
+                    </p>
+                    <p className="text-xs text-amber-700 leading-relaxed">
+                      For security, you'll need to re-authenticate with your current password. A verification email will be sent to your new address.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {emailError && (
+                <div className="p-3 bg-red-50 rounded-xl border-2 border-red-100">
+                  <p className="text-xs font-bold text-red-700">{emailError}</p>
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    setShowEmailEdit(false);
+                    setEmailError('');
+                    setEmailSuccess('');
+                    setNewEmail('');
+                    setEmailPassword('');
+                  }}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-black hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEmailUpdate}
+                  disabled={saving || !newEmail || !emailPassword}
+                  className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-black hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {saving ? <Loader2 className="animate-spin" size={16} /> : 'Update Email'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <PaymentModal 
         isOpen={paymentModalOpen} 

@@ -12,6 +12,8 @@ export interface User {
   city: string;
   location: string; 
   bio: string;
+  email: string;
+  emailVerified: boolean;
   images: string[];
   coverImage?: string;
   attendsChurch: boolean;

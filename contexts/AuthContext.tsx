@@ -33,7 +33,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const docRef = doc(db, 'users', uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setUserProfile(docSnap.data() as User);
+        const userData = docSnap.data() as User;
+        
+        // Update email verification status from Firebase Auth
+        if (currentUser && currentUser.emailVerified !== userData.emailVerified) {
+          await updateDoc(docRef, { emailVerified: currentUser.emailVerified });
+          userData.emailVerified = currentUser.emailVerified;
+        }
+        
+        setUserProfile(userData);
       } else {
         console.log("No user profile found for this auth user.");
         setUserProfile(null);

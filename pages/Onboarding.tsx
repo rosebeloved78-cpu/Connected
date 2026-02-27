@@ -79,6 +79,8 @@ const OnboardingPage: React.FC = () => {
         city: formData.city,
         location: displayLocation,
         bio: `Excited to find my God-ordained partner through Lifestyle Connect! Based in ${displayLocation}.`,
+        email: auth.currentUser?.email || '',
+        emailVerified: auth.currentUser?.emailVerified || false,
         images: ['https://picsum.photos/seed/profile/400/600'],
         attendsChurch: !!formData.attendsChurch,
         churchName: formData.attendsChurch ? formData.churchName : undefined,
