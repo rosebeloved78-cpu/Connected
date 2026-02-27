@@ -7,7 +7,7 @@ import { getFirestore, initializeFirestore, persistentLocalCache, persistentMult
 // You can get this from the Firebase Console > Project Settings > General > Your Apps
 const firebaseConfig = {
   apiKey: "AIzaSyB7mAxhfjuIphcep2g9OoTqW7UyQ4C7PDg",
-  authDomain: "lifestyle-fb7b8.firebaseapp.com",
+  authDomain: "lifestyleconnect.co.zw",
   projectId: "lifestyle-fb7b8",
   storageBucket: "lifestyle-fb7b8.firebasestorage.app",
   messagingSenderId: "731261323239",
