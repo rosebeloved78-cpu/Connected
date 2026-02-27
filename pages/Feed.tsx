@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Tier } from '../types';
-import { Heart, X, Sparkles, MapPin, SlidersHorizontal, Coffee, Lock, Loader2, Zap, Armchair, ShieldCheck, Globe } from 'lucide-react';
+import { Heart, X, Sparkles, MapPin, SlidersHorizontal, Coffee, Lock, Loader2, Zap, Armchair, ShieldCheck, Globe, Grid, List } from 'lucide-react';
 import { collection, getDocs, query, limit, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import PaymentModal from '../components/PaymentModal';
@@ -28,6 +28,7 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
   const [filterChurch, setFilterChurch] = useState('');
   const [filterMarital, setFilterMarital] = useState<'Any' | 'Never Married'>('Any');
   const [filterChildren, setFilterChildren] = useState<'Any' | 'No Children'>('Any');
+  const [viewMode, setViewMode] = useState<'swipe' | 'gallery'>('swipe');
 
   const isLocal = !user.isDiaspora;
   const localTier2OrHigher = user.tier === 'tier2' || user.tier === 'tier3';
@@ -41,8 +42,13 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
   const canLocalSeeDiaspora = isLocal && localTier2OrHigher;
   const canDiasporaSeeZim = user.isDiaspora && diasporaTier2OrHigher;
 
-  const canFilterChurch = (isLocal && localTier2OrHigher) || (user.isDiaspora && diasporaTier2OrHigher);
   const canFilterHistory = (isLocal && localTier3) || (user.isDiaspora && diasporaTier2OrHigher);
+
+  // Check if user has paid subscription for gallery mode
+  const hasPaidSubscription = user.tier !== 'tier1' && user.tier !== 'diaspora_basic';
+  const canUseGalleryMode = hasPaidSubscription;
+
+  const canFilterChurch = (isLocal && localTier2OrHigher) || (user.isDiaspora && diasporaTier2OrHigher);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -179,9 +185,45 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
              {filteredMatches.length} Soulful Matches
            </p>
         </div>
-        <button onClick={() => setShowFilters(!showFilters)} className={`p-4 rounded-2xl transition-all ${showFilters ? 'bg-rose-600 text-white shadow-lg' : 'bg-white text-gray-400 hover:text-rose-600 shadow-sm'}`}>
-          <SlidersHorizontal size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          {/* View Mode Toggle */}
+          {hasPaidSubscription ? (
+            <div className="flex items-center bg-white rounded-2xl border-2 border-rose-50 p-1">
+              <button
+                onClick={() => setViewMode('swipe')}
+                className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+                  viewMode === 'swipe' 
+                    ? 'bg-rose-600 text-white shadow-md' 
+                    : 'text-rose-300 hover:text-rose-500'
+                }`}
+              >
+                <List size={16} className="mr-2" />
+                Swipe
+              </button>
+              <button
+                onClick={() => setViewMode('gallery')}
+                className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+                  viewMode === 'gallery' 
+                    ? 'bg-rose-600 text-white shadow-md' 
+                    : 'text-rose-300 hover:text-rose-500'
+                }`}
+              >
+                <Grid size={16} className="mr-2" />
+                Gallery
+              </button>
+            </div>
+          ) : (
+            <div className="px-4 py-2 bg-amber-50 rounded-2xl border-2 border-amber-100">
+              <span className="text-xs font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                <Lock size={12} />
+                Gallery Mode - Upgrade Required
+              </span>
+            </div>
+          )}
+          <button onClick={() => setShowFilters(!showFilters)} className={`p-4 rounded-2xl transition-all ${showFilters ? 'bg-rose-600 text-white shadow-lg' : 'bg-white text-gray-400 hover:text-rose-600 shadow-sm'}`}>
+            <SlidersHorizontal size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="max-w-xl mx-auto bg-white p-6 rounded-[2.5rem] border-2 border-rose-50 shadow-sm mb-6">
@@ -290,13 +332,19 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
         )}
 
         <div className="space-y-8">
-          {loadingUsers ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-rose-600" size={40} /></div> : filteredMatches.map(match => (
+          {loadingUsers ? (
+            <div className="py-20 flex justify-center">
+              <Loader2 className="animate-spin text-rose-600" size={40} />
+            </div>
+          ) : viewMode === 'swipe' ? (
+            // Swipe Mode - Vertical list (current behavior)
+            filteredMatches.map(match => (
               <div key={match.id} className="bg-white rounded-[3.5rem] p-5 shadow-2xl border-4 border-white hover:border-rose-50 transition-all overflow-hidden group">
                 <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-6">
                   <img src={match.images?.[0]} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={match.name} />
                   <div className="absolute bottom-0 inset-x-0 p-10 bg-gradient-to-t from-black/90 to-transparent text-white">
                     <h3 className="text-3xl font-black mb-2 tracking-tight">{match.name}, {match.age}</h3>
-                    <div className="flex items-center gap-2 text-sm font-bold text-rose-300"> 
+                    <div className="flex items-center gap-2 text-sm font-bold text-rose-200"> 
                       <MapPin size={16} fill="currentColor" /> {match.city}, {match.country} 
                     </div>
                   </div>
@@ -331,8 +379,58 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
                   </div>
                 </div>
               </div>
-          ))}
-          {filteredMatches.length === 0 && !loadingUsers && (
+            ))
+          ) : (
+            // Gallery Mode - Grid layout for paid users
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredMatches.map(match => (
+                <div key={match.id} className="bg-white rounded-[2rem] p-4 shadow-xl border-2 border-white hover:border-rose-50 transition-all overflow-hidden group">
+                  <div className="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden mb-4">
+                    <img src={match.images?.[0]} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={match.name} />
+                    <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/90 to-transparent text-white">
+                      <h4 className="text-lg font-black mb-1 tracking-tight">{match.name}, {match.age}</h4>
+                      <div className="flex items-center gap-1 text-xs font-bold text-rose-200"> 
+                        <MapPin size={12} fill="currentColor" /> {match.city}, {match.country} 
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-3 pb-3">
+                    <div className="flex items-center gap-2 mb-3">
+                       <span className="px-2 py-1 bg-rose-50 text-rose-600 rounded-full text-[8px] font-black uppercase tracking-widest text-xs">{match.churchName || 'Faithful'}</span>
+                    </div>
+                    <p className="text-gray-600 font-bold text-sm mb-4 line-clamp-2 italic leading-relaxed">"{match.bio}"</p>
+                    
+                    {/* AI Insight Display */}
+                    {aiInsight?.id === match.id && (
+                      <div className="mb-4 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 animate-in fade-in zoom-in duration-500">
+                        <div className="flex items-center gap-2 mb-2 text-indigo-600">
+                          <Sparkles size={14} fill="currentColor" />
+                          <span className="text-[8px] font-black uppercase tracking-widest">Spiritual Discernment</span>
+                        </div>
+                        <p className="text-indigo-900 font-bold text-xs italic leading-relaxed">"{aiInsight.text}"</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <button className="h-12 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors"><X size={20} /></button>
+                      <button onClick={() => handleConnect(match)} className="h-12 rounded-xl bg-rose-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-rose-100 font-black uppercase text-xs tracking-widest hover:bg-rose-700 active:scale-95 transition-all"> 
+                        <Heart size={18} fill="currentColor" /> Connect 
+                      </button>
+                      <button 
+                        onClick={() => generateSpiritualDiscernment(match)} 
+                        disabled={loadingAiId === match.id}
+                        className="h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                      > 
+                        {loadingAiId === match.id ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />} 
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>  
+        {filteredMatches.length === 0 && !loadingUsers && (
             <div className="text-center py-24 bg-white rounded-[4rem] border-4 border-dashed border-rose-50 shadow-inner">
                <ShieldCheck className="mx-auto text-rose-100 mb-6" size={64} />
                <h3 className="text-2xl font-black text-rose-950">Seeking matches...</h3>
