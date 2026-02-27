@@ -438,7 +438,6 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
             </div>
           )}
         </div>
-      </div>
       <PaymentModal isOpen={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} amount={pendingUpgrade?.amount || 0} title={pendingUpgrade?.title || ''} description={pendingUpgrade?.desc || ''} onSuccess={handlePaymentSuccess} />
     </div>
   );
