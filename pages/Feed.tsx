@@ -508,16 +508,6 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
                       </div>
                     )}
 
-              ))}
-              ))}
-            </div>
-          )}
-        </div>  
-        {filteredMatches.length === 0 && !loadingUsers && (
-            <div className="text-center py-24 bg-white rounded-[4rem] border-4 border-dashed border-rose-50 shadow-inner">
-               <ShieldCheck className="mx-auto text-rose-100 mb-6" size={64} />
-               <h3 className="text-2xl font-black text-rose-950">Seeking matches...</h3>
-               <p className="text-gray-400 font-bold text-sm mt-2 px-12">Try adjusting your age filters or expanding your search scope above.</p>
             </div>
           )}
         </div>
