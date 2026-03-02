@@ -31,6 +31,9 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
   const [viewMode, setViewMode] = useState<'swipe' | 'gallery'>('swipe');
   // Swipe mode state for showing one profile at a time
   const [currentSwipeIndex, setCurrentSwipeIndex] = useState(0);
+  // Profile modal state for viewing full profile details
+  const [selectedProfile, setSelectedProfile] = useState<User | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const isLocal = !user.isDiaspora;
   const localTier2OrHigher = user.tier === 'tier2' || user.tier === 'tier3';
@@ -192,6 +195,17 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
     if (currentMatch) {
       await handleConnect(currentMatch);
     }
+  };
+
+  // Profile modal functions
+  const openProfileModal = (profile: User) => {
+    setSelectedProfile(profile);
+    setProfileModalOpen(true);
+  };
+
+  const closeProfileModal = () => {
+    setSelectedProfile(null);
+    setProfileModalOpen(false);
   };
 
   return (
@@ -366,7 +380,10 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
                 </div>
 
                 {/* Current Profile */}
-                <div className="bg-white rounded-[3.5rem] p-5 shadow-2xl border-4 border-white hover:border-rose-50 transition-all overflow-hidden group">
+                <div 
+                  onClick={() => openProfileModal(filteredMatches[currentSwipeIndex])}
+                  className="bg-white rounded-[3.5rem] p-5 shadow-2xl border-4 border-white hover:border-rose-50 transition-all overflow-hidden group cursor-pointer"
+                >
                   <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-6">
                     <img 
                       src={filteredMatches[currentSwipeIndex]?.images?.[0]} 
@@ -491,21 +508,7 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-3 gap-2">
-                      <button className="h-12 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors"><X size={20} /></button>
-                      <button onClick={() => handleConnect(match)} className="h-12 rounded-xl bg-rose-600 text-white flex items-center justify-center gap-2 shadow-lg shadow-rose-100 font-black uppercase text-xs tracking-widest hover:bg-rose-700 active:scale-95 transition-all"> 
-                        <Heart size={18} fill="currentColor" /> Connect 
-                      </button>
-                      <button 
-                        onClick={() => generateSpiritualDiscernment(match)} 
-                        disabled={loadingAiId === match.id}
-                        className="h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors disabled:opacity-50"
-                      > 
-                        {loadingAiId === match.id ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />} 
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              ))}
               ))}
             </div>
           )}
@@ -519,6 +522,148 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
           )}
         </div>
       <PaymentModal isOpen={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} amount={pendingUpgrade?.amount || 0} title={pendingUpgrade?.title || ''} description={pendingUpgrade?.desc || ''} onSuccess={handlePaymentSuccess} />
+      
+      {/* Profile Modal */}
+      {profileModalOpen && selectedProfile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h2 className="text-2xl font-black text-rose-950">Profile Details</h2>
+              <button 
+                onClick={closeProfileModal}
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Profile Content */}
+            <div className="p-6">
+              {/* Images */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {selectedProfile.images?.slice(0, 4).map((image, index) => (
+                  <div key={index} className="aspect-[3/4] rounded-xl overflow-hidden">
+                    <img 
+                      src={image} 
+                      crossOrigin="anonymous" 
+                      referrerPolicy="no-referrer" 
+                      className="w-full h-full object-cover" 
+                      alt={`${selectedProfile.name} - Image ${index + 1}`}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Basic Info */}
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <h3 className="text-3xl font-black text-rose-950">{selectedProfile.name}, {selectedProfile.age}</h3>
+                    <div className="flex items-center gap-2 text-sm font-bold text-rose-600 mt-1">
+                      <MapPin size={16} fill="currentColor" />
+                      {selectedProfile.city}, {selectedProfile.country}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Church</span>
+                    <p className="text-sm font-bold text-gray-700">{selectedProfile.churchName || 'Faithful Christian'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Profession</span>
+                    <p className="text-sm font-bold text-gray-700">{selectedProfile.profession || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Education</span>
+                    <p className="text-sm font-bold text-gray-700">{selectedProfile.education || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Marital Status</span>
+                    <p className="text-sm font-bold text-gray-700">{selectedProfile.maritalStatus || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Children</span>
+                    <p className="text-sm font-bold text-gray-700">
+                      {selectedProfile.hasChildren ? `${selectedProfile.numberOfChildren} children` : 'No children'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio */}
+              <div className="mb-6">
+                <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">About</h4>
+                <p className="text-gray-700 leading-relaxed">"{selectedProfile.bio}"</p>
+              </div>
+
+              {/* Spiritual Info */}
+              <div className="mb-6">
+                <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">Spiritual Journey</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Church Attendance</span>
+                    <p className="text-sm font-bold text-gray-700">
+                      {selectedProfile.attendsChurch ? 'Regular attender' : 'Not specified'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Serves in Church</span>
+                    <p className="text-sm font-bold text-gray-700">
+                      {selectedProfile.servesInChurch ? `${selectedProfile.department || 'Ministry'}` : 'Not specified'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Spiritual Maturity</span>
+                    <p className="text-sm font-bold text-gray-700">{selectedProfile.spiritualMaturity || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Vow Status</span>
+                    <p className="text-sm font-bold text-gray-700">
+                      {selectedProfile.vowAccepted ? 'Vow accepted' : 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Insight */}
+              {aiInsight?.id === selectedProfile.id && (
+                <div className="mb-6 p-4 bg-indigo-50/50 rounded-xl border-2 border-indigo-100">
+                  <div className="flex items-center gap-2 mb-3 text-indigo-600">
+                    <Sparkles size={14} fill="currentColor" />
+                    <span className="text-xs font-black uppercase tracking-widest">Spiritual Discernment</span>
+                  </div>
+                  <p className="text-indigo-900 font-bold text-sm italic leading-relaxed">"{aiInsight.text}"</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    closeProfileModal();
+                    handleConnect(selectedProfile);
+                  }}
+                  className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-rose-700 transition-colors"
+                >
+                  <Heart size={16} className="mr-2" />
+                  Connect
+                </button>
+                <button
+                  onClick={() => generateSpiritualDiscernment(selectedProfile)}
+                  disabled={loadingAiId === selectedProfile.id}
+                  className="flex-1 py-3 bg-indigo-50 text-indigo-600 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                >
+                  {loadingAiId === selectedProfile.id ? <Loader2 className="animate-spin mr-2" /> : <Sparkles size={16} className="mr-2" />}
+                  Spiritual Discernment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
