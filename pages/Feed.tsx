@@ -29,6 +29,8 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
   const [filterMarital, setFilterMarital] = useState<'Any' | 'Never Married'>('Any');
   const [filterChildren, setFilterChildren] = useState<'Any' | 'No Children'>('Any');
   const [viewMode, setViewMode] = useState<'swipe' | 'gallery'>('swipe');
+  // Swipe mode state for showing one profile at a time
+  const [currentSwipeIndex, setCurrentSwipeIndex] = useState(0);
 
   const isLocal = !user.isDiaspora;
   const localTier2OrHigher = user.tier === 'tier2' || user.tier === 'tier3';
@@ -174,6 +176,22 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
       });
       navigate('/messages');
     } catch (e) { alert("Could not connect."); }
+  };
+
+  // Swipe navigation functions
+  const handleSwipeLeft = () => {
+    setCurrentSwipeIndex(prev => Math.max(0, prev - 1));
+  };
+
+  const handleSwipeRight = () => {
+    setCurrentSwipeIndex(prev => Math.min(filteredMatches.length - 1, prev + 1));
+  };
+
+  const handleSwipeConnect = async () => {
+    const currentMatch = filteredMatches[currentSwipeIndex];
+    if (currentMatch) {
+      await handleConnect(currentMatch);
+    }
   };
 
   return (
@@ -337,49 +355,111 @@ const FeedPage: React.FC<FeedPageProps> = ({ user, onUpdateUser }) => {
               <Loader2 className="animate-spin text-rose-600" size={40} />
             </div>
           ) : viewMode === 'swipe' ? (
-            // Swipe Mode - Vertical list (current behavior)
-            filteredMatches.map(match => (
-              <div key={match.id} className="bg-white rounded-[3.5rem] p-5 shadow-2xl border-4 border-white hover:border-rose-50 transition-all overflow-hidden group">
-                <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-6">
-                  <img src={match.images?.[0]} crossOrigin="anonymous" referrerPolicy="no-referrer" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={match.name} />
-                  <div className="absolute bottom-0 inset-x-0 p-10 bg-gradient-to-t from-black/90 to-transparent text-white">
-                    <h3 className="text-3xl font-black mb-2 tracking-tight">{match.name}, {match.age}</h3>
-                    <div className="flex items-center gap-2 text-sm font-bold text-rose-200"> 
-                      <MapPin size={16} fill="currentColor" /> {match.city}, {match.country} 
+            // Swipe Mode - One profile at a time (Tinder-style)
+            filteredMatches.length > 0 ? (
+              <div className="relative">
+                {/* Profile Counter */}
+                <div className="text-center mb-4">
+                  <span className="text-sm font-black text-gray-500">
+                    {currentSwipeIndex + 1} / {filteredMatches.length}
+                  </span>
+                </div>
+
+                {/* Current Profile */}
+                <div className="bg-white rounded-[3.5rem] p-5 shadow-2xl border-4 border-white hover:border-rose-50 transition-all overflow-hidden group">
+                  <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-6">
+                    <img 
+                      src={filteredMatches[currentSwipeIndex]?.images?.[0]} 
+                      crossOrigin="anonymous" 
+                      referrerPolicy="no-referrer" 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                      alt={filteredMatches[currentSwipeIndex]?.name} 
+                    />
+                    <div className="absolute bottom-0 inset-x-0 p-10 bg-gradient-to-t from-black/90 to-transparent text-white">
+                      <h3 className="text-3xl font-black mb-2 tracking-tight">
+                        {filteredMatches[currentSwipeIndex]?.name}, {filteredMatches[currentSwipeIndex]?.age}
+                      </h3>
+                      <div className="flex items-center gap-2 text-sm font-bold text-rose-200"> 
+                        <MapPin size={16} fill="currentColor" /> {filteredMatches[currentSwipeIndex]?.city}, {filteredMatches[currentSwipeIndex]?.country} 
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="px-5 pb-5">
-                  <div className="flex items-center gap-2 mb-4">
-                     <span className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase tracking-widest">{match.churchName || 'Faithful Christian'}</span>
-                  </div>
-                  <p className="text-gray-600 font-bold text-base mb-8 line-clamp-3 italic leading-relaxed">"{match.bio}"</p>
+                  <div className="px-5 pb-5">
+                    <div className="flex items-center gap-2 mb-4">
+                       <span className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-full text-[9px] font-black uppercase tracking-widest">
+                         {filteredMatches[currentSwipeIndex]?.churchName || "Faithful Christian"}
+                       </span>
+                    </div>
+                    <p className="text-gray-600 font-bold text-base mb-8 line-clamp-3 italic leading-relaxed">
+                      "{filteredMatches[currentSwipeIndex]?.bio}"
+                    </p>
                   
                   {/* AI Insight Display */}
-                  {aiInsight?.id === match.id && (
+                  {aiInsight?.id === filteredMatches[currentSwipeIndex]?.id && (
                     <div className="mb-8 p-6 bg-indigo-50/50 rounded-[2rem] border-2 border-indigo-100 animate-in fade-in zoom-in duration-500">
                       <div className="flex items-center gap-2 mb-3 text-indigo-600">
-                        <Sparkles size={16} fill="currentColor" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Spiritual Discernment</span>
+                        <Sparkles size={14} fill="currentColor" />
+                        <span className="text-[8px] font-black uppercase tracking-widest">Spiritual Discernment</span>
                       </div>
                       <p className="text-indigo-900 font-bold text-sm italic leading-relaxed">"{aiInsight.text}"</p>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-4 gap-4">
-                    <button className="h-16 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors"><X size={28} /></button>
-                    <button onClick={() => handleConnect(match)} className="col-span-2 h-16 rounded-2xl bg-rose-600 text-white flex items-center justify-center gap-3 shadow-xl shadow-rose-100 font-black uppercase text-xs tracking-widest hover:bg-rose-700 active:scale-95 transition-all"> <Heart size={24} fill="currentColor" /> Connect </button>
+                  {/* Swipe Actions */}
+                  <div className="grid grid-cols-3 gap-4">
                     <button 
-                      onClick={() => generateSpiritualDiscernment(match)} 
-                      disabled={loadingAiId === match.id}
+                      onClick={() => handleSwipeLeft()}
+                      disabled={currentSwipeIndex === 0}
+                      className="h-16 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <X size={28} />
+                    </button>
+                    <button 
+                      onClick={() => handleSwipeConnect()}
+                      className="h-16 rounded-2xl bg-rose-600 text-white flex items-center justify-center gap-3 shadow-xl shadow-rose-100 font-black uppercase text-xs tracking-widest hover:bg-rose-700 active:scale-95 transition-all"
+                    > 
+                      <Heart size={24} fill="currentColor" /> Connect 
+                    </button>
+                    <button 
+                      onClick={() => generateSpiritualDiscernment(filteredMatches[currentSwipeIndex])} 
+                      disabled={loadingAiId === filteredMatches[currentSwipeIndex]?.id}
                       className="h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition-colors disabled:opacity-50"
                     > 
-                      {loadingAiId === match.id ? <Loader2 className="animate-spin" /> : <Sparkles size={28} />} 
+                      {loadingAiId === filteredMatches[currentSwipeIndex]?.id ? <Loader2 className="animate-spin" /> : <Sparkles size={28} />} 
                     </button>
                   </div>
                 </div>
+
+                {/* Swipe Navigation */}
+                <div className="flex justify-center gap-4 mt-8">
+                  <button
+                    onClick={() => handleSwipeLeft()}
+                    disabled={currentSwipeIndex === 0}
+                    className="p-4 rounded-full bg-white shadow-lg border-2 border-gray-200 text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <X size={24} />
+                  </button>
+                  <button
+                    onClick={() => handleSwipeRight()}
+                    disabled={currentSwipeIndex === filteredMatches.length - 1}
+                    className="p-4 rounded-full bg-white shadow-lg border-2 border-gray-200 text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Heart size={24} />
+                  </button>
+                </div>
+
+                {/* Keyboard Navigation Hints */}
+                <div className="text-center mt-4">
+                  <p className="text-xs text-gray-400 font-black uppercase tracking-widest">
+                    Use ← → arrow keys to navigate • Space to connect
+                  </p>
+                </div>
               </div>
-            ))
+            ) : (
+              <div className="py-20 flex justify-center">
+                <Loader2 className="animate-spin text-rose-600" size={40} />
+              </div>
+            )
           ) : (
             // Gallery Mode - Grid layout for paid users
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
